@@ -14,10 +14,10 @@ new_sqlite_classes = ["RoomDO"]
 [[d1_databases]]
 binding = "DB"
 database_name = "buraco"
-database_id = "COLE_AQUI_O_ID_DO_D1" # wrangler d1 create buraco
+database_id = "07b4c0b0-f644-4eba-9716-2850a78865ca"
 migrations_dir = "migrations"
 
 [vars]
-ALLOWED_ORIGIN = "*" # troque pelo domínio do front em produção
+ALLOWED_ORIGIN = "https://buraco-8ln.pages.dev"
 
 # Segredos (wrangler secret put): TURN_KEY_ID, TURN_KEY_API_TOKEN
