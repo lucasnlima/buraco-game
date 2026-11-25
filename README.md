@@ -71,9 +71,10 @@ npx wrangler deploy                           # anote a URL https://buraco-serve
 
 ## Assets (cartas, mesa, logo)
 
-As cartas hoje são desenhadas em SVG pelo código. Para usar as imagens do Gemini, coloque-as em
-`apps/web/public/assets/cards/` (`AS.png`, `10H.png`, `QC.png`, `JK1.png`, `back.png`; S/H/D/C) e mude
-`useImages` para `true` em `apps/web/src/theme.ts`. Veja `apps/web/public/assets/README.md`.
+Os assets do Gemini já estão integrados (`apps/web/public/assets`, otimizados para WebP, ~1,2 MB no total):
+figuras e coringas, verso, avatares, selos, ícones, naipes (2 e 4 cores), mesa (retrato/paisagem) e logo.
+O pacote **não trazia A e 2–10**: essas cartas são desenhadas em SVG no mesmo estilo e as figuras ganham um
+índice sobreposto no canto (necessário com a mão sobreposta). Veja `apps/web/public/assets/README.md` e `apps/web/src/theme.ts`.
 
 ## Regras (resumo)
 

@@ -2,25 +2,43 @@ import type { Card } from '@buraco/engine';
 import { cardCode } from '@buraco/engine';
 
 /**
- * Tema das cartas. Para usar as imagens geradas (Gemini), coloque os arquivos em
- * `public/assets/cards/` (AS.png, 10H.png, QC.png, JK1.png, back.png…) e mude `useImages` para true.
- * Suit: S espadas, H copas, D ouros, C paus.
+ * Tema visual. Imagens ficam em `public/assets/` (veja public/assets/README.md).
+ * Cartas sem imagem (A, 2–10) são desenhadas em SVG no mesmo estilo.
  */
 export const theme = {
-  useImages: false,
-  imageExt: 'png' as 'png' | 'svg',
-  basePath: '/assets/cards',
-  /** mesa/fundo: troque por '/assets/table.jpg' quando existir */
-  tableImage: null as string | null,
-  logo: null as string | null,
+  useImages: true,
+  basePath: '/assets',
+  /** verso padrão: 'back' | 'back-blue' | 'back-wine' */
+  back: 'back',
+  avatarCount: 12,
 };
 
-export const cardImageUrl = (c: Card): string | null =>
-  theme.useImages ? `${theme.basePath}/${cardCode(c)}.${theme.imageExt}` : null;
-export const backImageUrl = (): string | null =>
-  theme.useImages ? `${theme.basePath}/back.${theme.imageExt}` : null;
+/** Cartas que têm arte pronta (figuras e coringas). */
+const IMAGE_CARDS = new Set(
+  ['J', 'Q', 'K'].flatMap((r) => ['S', 'H', 'D', 'C'].map((s) => r + s)).concat(['JK1', 'JK2']),
+);
 
-export const SUIT_GLYPH = { S: '♠', H: '♥', D: '♦', C: '♣' } as const;
+export function cardImageUrl(c: Card): string | null {
+  if (!theme.useImages) return null;
+  let code = cardCode(c);
+  if (c.rank === 0) code = `JK${((c.id - 104) % 2) + 1}`; // 4 coringas reutilizam 2 artes
+  return IMAGE_CARDS.has(code) ? `${theme.basePath}/cards/${code}.webp` : null;
+}
+export const backImageUrl = (): string | null =>
+  theme.useImages ? `${theme.basePath}/cards/${theme.back}.webp` : null;
+
+export const avatarUrl = (name: string): string => {
+  const h = [...name].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  return `${theme.basePath}/avatars/${String((h % theme.avatarCount) + 1).padStart(2, '0')}.webp`;
+};
+
+export const iconUrl = (name: string): string => `${theme.basePath}/icons/${name}.svg`;
+export const badgeUrl = (name: string): string => `${theme.basePath}/badges/${name}.webp`;
+
+const SUIT_FILE = { S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' } as const;
+export const suitUrl = (suit: keyof typeof SUIT_FILE, fourColors: boolean): string =>
+  `${theme.basePath}/suits/${fourColors ? '4-color/' : ''}${SUIT_FILE[suit]}.svg`;
+
 export const SUIT_COLOR_2 = { S: '#14181c', C: '#14181c', H: '#c62828', D: '#c62828' } as const;
 /** Modo 4 cores: cada naipe tem cor própria. */
 export const SUIT_COLOR_4 = { S: '#14181c', H: '#c62828', D: '#1565c0', C: '#2e7d32' } as const;

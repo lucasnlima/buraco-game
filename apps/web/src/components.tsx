@@ -1,5 +1,13 @@
 import type { Card as CardT } from '@buraco/engine';
-import { SUIT_COLOR_2, SUIT_COLOR_4, SUIT_GLYPH, backImageUrl, cardImageUrl } from './theme';
+import {
+  SUIT_COLOR_2,
+  SUIT_COLOR_4,
+  avatarUrl,
+  backImageUrl,
+  cardImageUrl,
+  iconUrl,
+  suitUrl,
+} from './theme';
 import { rankLabel } from '@buraco/engine';
 import { useState, type ReactNode } from 'react';
 import { useStore } from './store';
@@ -24,18 +32,25 @@ export function CardView({
   const h = Math.round(w * 1.4);
   const style = { width: w, height: h };
   const cls = `card-anim relative shrink-0 select-none ${selected ? '-translate-y-3 drop-shadow-[0_0_6px_#f5c542]' : ''} ${dim ? 'opacity-60' : ''}`;
+  const ring = selected ? 'ring-2 ring-gold' : '';
 
   const url = faceDown ? backImageUrl() : card ? cardImageUrl(card) : null;
   if (url && !imgFailed) {
     return (
-      <div className={cls} style={style}>
+      <div
+        className={cls}
+        style={style}
+        role="img"
+        aria-label={faceDown || !card ? 'carta virada' : cardLabel(card)}
+      >
         <img
           src={url}
           alt=""
           draggable={false}
-          className="h-full w-full rounded-md"
+          className={`h-full w-full rounded-[7%] ${ring}`}
           onError={() => setImgFailed(true)}
         />
+        {card && card.rank !== 0 && <Index card={card} four={four} overlay />}
         {badge && <Badge text={badge} />}
       </div>
     );
@@ -51,21 +66,21 @@ export function CardView({
             width="96"
             height="136"
             rx="10"
-            fill="#1d4ed8"
-            stroke="#fff"
+            fill="#0f4d37"
+            stroke="#fbf3dd"
             strokeWidth="3"
           />
           <rect
-            x="12"
-            y="12"
-            width="76"
-            height="116"
+            x="11"
+            y="11"
+            width="78"
+            height="118"
             rx="6"
             fill="none"
-            stroke="#93c5fd"
+            stroke="#c9a227"
             strokeWidth="2"
           />
-          <path d="M20 20 L80 120 M80 20 L20 120" stroke="#93c5fd" strokeWidth="2" opacity=".6" />
+          <path d="M20 20 L80 120 M80 20 L20 120" stroke="#c9a227" strokeWidth="1.5" opacity=".6" />
         </svg>
       </div>
     );
@@ -73,15 +88,8 @@ export function CardView({
 
   const joker = card.rank === 0;
   const color = joker ? '#7b1fa2' : (four ? SUIT_COLOR_4 : SUIT_COLOR_2)[card.suit!];
-  const glyph = joker ? '★' : SUIT_GLYPH[card.suit!];
-  const label = rankLabel(card.rank);
   return (
-    <div
-      className={cls}
-      style={style}
-      role="img"
-      aria-label={joker ? 'coringa' : `${label} de ${card.suit}`}
-    >
+    <div className={cls} style={style} role="img" aria-label={cardLabel(card)}>
       <svg viewBox="0 0 100 140" width={w} height={h}>
         <rect
           x="2"
@@ -89,44 +97,86 @@ export function CardView({
           width="96"
           height="136"
           rx="10"
-          fill="#fff"
-          stroke={selected ? '#f5c542' : '#9aa5a0'}
-          strokeWidth={selected ? 4 : 2}
+          fill="#fbf3dd"
+          stroke={selected ? '#f5c542' : '#1f6b46'}
+          strokeWidth={selected ? 4 : 2.5}
         />
-        <text
-          x="9"
-          y="30"
-          fontSize={joker ? 17 : 28}
-          fontWeight="700"
-          fill={color}
-          fontFamily="system-ui,sans-serif"
-        >
-          {joker ? 'JK' : label}
-        </text>
-        <text x="9" y="56" fontSize="24" fill={color}>
-          {glyph}
-        </text>
-        <text x="50" y="98" fontSize="54" textAnchor="middle" fill={color}>
-          {glyph}
-        </text>
-        <g transform="rotate(180 50 70)">
-          <text
-            x="9"
-            y="30"
-            fontSize={joker ? 17 : 28}
-            fontWeight="700"
-            fill={color}
-            fontFamily="system-ui,sans-serif"
-          >
-            {joker ? 'JK' : label}
+        <rect
+          x="8"
+          y="8"
+          width="84"
+          height="124"
+          rx="6"
+          fill="none"
+          stroke="#c9a227"
+          strokeWidth="1.2"
+        />
+        {joker ? (
+          <text x="50" y="86" fontSize="54" textAnchor="middle" fill={color}>
+            ★
           </text>
-          <text x="9" y="56" fontSize="24" fill={color}>
-            {glyph}
-          </text>
-        </g>
+        ) : (
+          <image href={suitUrl(card.suit!, four)} x="22" y="42" width="56" height="56" />
+        )}
       </svg>
+      <Index card={card} four={four} />
       {badge && <Badge text={badge} />}
     </div>
+  );
+}
+
+function cardLabel(c: CardT): string {
+  return c.rank === 0
+    ? 'coringa'
+    : `${rankLabel(c.rank)} de ${{ S: 'espadas', H: 'copas', D: 'ouros', C: 'paus' }[c.suit!]}`;
+}
+
+/** Índice (valor + naipe) no canto superior esquerdo — essencial com as cartas sobrepostas na mão. */
+function Index({ card, four, overlay = false }: { card: CardT; four: boolean; overlay?: boolean }) {
+  const joker = card.rank === 0;
+  const color = joker ? '#7b1fa2' : (four ? SUIT_COLOR_4 : SUIT_COLOR_2)[card.suit!];
+  const label = joker ? 'JK' : rankLabel(card.rank);
+  return (
+    <svg
+      viewBox="0 0 100 140"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      aria-hidden
+    >
+      {overlay && (
+        <rect
+          x="3"
+          y="3"
+          width="34"
+          height="56"
+          rx="7"
+          fill="#fbf3dd"
+          fillOpacity=".93"
+          stroke="#1f6b46"
+          strokeWidth="1.5"
+        />
+      )}
+      <text
+        x="20"
+        y={joker ? 32 : 30}
+        textAnchor="middle"
+        fontSize={label.length > 1 ? 24 : 30}
+        fontWeight="800"
+        fill={color}
+        fontFamily="system-ui,sans-serif"
+      >
+        {label}
+      </text>
+      {!joker && (
+        <image
+          href={suitUrl(card.suit!, four)}
+          x="7"
+          y="34"
+          width="26"
+          height="22"
+          preserveAspectRatio="xMidYMid meet"
+        />
+      )}
+    </svg>
   );
 }
 
@@ -188,19 +238,37 @@ export function Avatar({
   size?: number;
   speaking?: boolean;
 }) {
-  const hue = [...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
   return (
-    <div
-      className={`flex shrink-0 items-center justify-center rounded-full font-bold text-white ${speaking ? 'speaking-ring' : ''}`}
-      style={{
-        width: size,
-        height: size,
-        background: `hsl(${hue} 55% 38%)`,
-        fontSize: size * 0.42,
-      }}
-    >
-      {name.slice(0, 1).toUpperCase()}
-    </div>
+    <img
+      src={avatarUrl(name)}
+      alt=""
+      draggable={false}
+      width={size}
+      height={size}
+      className={`shrink-0 rounded-full bg-felt-700 object-cover ${speaking ? 'speaking-ring' : ''}`}
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+export function Icon({
+  name,
+  size = 22,
+  className = '',
+}: {
+  name: string;
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <img
+      src={iconUrl(name)}
+      alt=""
+      width={size}
+      height={size}
+      draggable={false}
+      className={`inline-block shrink-0 ${className}`}
+    />
   );
 }
 

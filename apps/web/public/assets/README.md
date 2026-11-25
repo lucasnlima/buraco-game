@@ -1,10 +1,15 @@
-# Assets (Gemini)
+# Assets
 
-Coloque aqui as imagens geradas e ligue-as em `src/theme.ts` (`useImages: true`).
+Gerados no Gemini e otimizados para WebP (cartas 240×336, avatares 128, selos 96, logo 720).
 
-- `cards/{rank}{suit}.png|svg` — `AS.png`, `10H.png`, `QC.png`, `JD.png`, `JK1.png`… (S espadas, H copas, D ouros, C paus)
-- `cards/back.png` — verso
-- `table.jpg` — fundo da mesa (opcional; `theme.tableImage`)
-- `logo.png` — logo (opcional; `theme.logo`)
+- `cards/` — `{J,Q,K}{S,H,D,C}.webp`, `JK1/JK2.webp` (os 4 coringas reutilizam 2 artes), `back*.webp`.
+  **Não há arte para A, 2–10**: essas cartas são desenhadas em SVG no mesmo estilo (`CardView`).
+  As artes de figuras não trazem índice no canto; o app sobrepõe um índice (valor + naipe) para
+  funcionar com cartas sobrepostas. Se gerar A–10 (`AS.webp`, `10H.webp`…), basta incluí-los em `IMAGE_CARDS` em `src/theme.ts`.
+- `avatars/01..12.webp` — escolhido pelo nome do jogador.
+- `badges/` — canastra limpa/suja/real, batida, vitória, pegou o morto.
+- `icons/`, `suits/` (+ `4-color/`) — SVGs.
+- `table/portrait.webp`, `landscape.webp` — fundo da mesa.
+- `brand/logo.webp`. Ícones do PWA em `public/icons/`.
 
-Enquanto não existirem, as cartas são desenhadas em SVG pelo código.
+Troque o verso em `theme.back` (`back`, `back-blue`, `back-wine`).

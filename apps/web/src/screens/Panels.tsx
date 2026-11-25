@@ -1,6 +1,6 @@
 import { REACTIONS } from '@buraco/protocol';
 import { useEffect, useRef, useState } from 'react';
-import { Avatar, Modal } from '../components';
+import { Avatar, Icon, Modal } from '../components';
 import { t } from '../i18n';
 import { useStore } from '../store';
 import { useVoice, voice } from '../voice';
@@ -28,7 +28,7 @@ export function Panels({ onClose, initial = 'chat' }: { onClose: () => void; ini
             className={tab === k ? 'btn-primary flex-1' : 'btn-ghost flex-1'}
             onClick={() => setTab(k)}
           >
-            {k === 'chat' ? '💬' : k === 'voice' ? '🎙️' : '⚙️'}
+            <Icon name={k === 'chat' ? 'chat' : k === 'voice' ? 'headphones' : 'settings'} />
           </button>
         ))}
       </div>
@@ -106,7 +106,7 @@ function VoiceTab() {
           disabled={v.starting}
           onClick={() => void voice.start()}
         >
-          🎙️ {t.joinVoice}
+          <Icon name="mic-on" /> {t.joinVoice}
         </button>
       ) : (
         <>
@@ -115,7 +115,7 @@ function VoiceTab() {
               className={v.muted ? 'btn-danger flex-1' : 'btn-ghost flex-1'}
               onClick={() => voice.setMuted(!v.muted)}
             >
-              {v.muted ? '🔇 ' + t.unmute : '🎤 ' + t.mute}
+              <Icon name={v.muted ? 'mic-off' : 'mic-on'} /> {v.muted ? t.unmute : t.mute}
             </button>
             <button className="btn-ghost flex-1" onClick={() => voice.stop()}>
               {t.leaveVoice}
@@ -141,7 +141,7 @@ function VoiceTab() {
               onPointerUp={() => voice.setPttHeld(false)}
               onPointerCancel={() => voice.setPttHeld(false)}
             >
-              🎙️ {t.pttHold}
+              <Icon name="mic-on" /> {t.pttHold}
             </button>
           )}
         </>

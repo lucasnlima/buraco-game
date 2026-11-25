@@ -3,6 +3,7 @@ import type { PlayerView } from '@buraco/engine';
 import type { MatchSummary } from '@buraco/protocol';
 import { Modal } from '../components';
 import { t } from '../i18n';
+import { badgeUrl } from '../theme';
 import { useStore } from '../store';
 
 export function teamNames(numPlayers: number, names: string[]): string[] {
@@ -33,7 +34,10 @@ export function Scoreboard({
     <Modal title={result ? t.handResult : t.scoreboard} onClose={result ? undefined : onClose}>
       {result && (
         <>
-          <p className="mb-3 text-center font-semibold text-gold">
+          <p className="mb-3 flex items-center justify-center gap-2 text-center font-semibold text-gold">
+            {result.reason === 'out' && (
+              <img src={badgeUrl('bateu')} alt="" width={40} height={40} />
+            )}
             {result.reason === 'out' ? t.wentOut(names[result.outPlayer!] ?? '?') : t.exhausted}
           </p>
           <div className="mb-4 overflow-x-auto">
@@ -116,7 +120,8 @@ export function Scoreboard({
       )}
 
       {result && match.finished && (
-        <p className="mb-3 text-center text-lg font-bold text-gold">
+        <p className="mb-3 flex items-center justify-center gap-2 text-center text-lg font-bold text-gold">
+          <img src={badgeUrl('vitoria')} alt="" width={48} height={48} />
           {t.matchWinner(match.winners.map((w) => tn[w]).join(' / '))}
         </p>
       )}

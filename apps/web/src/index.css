@@ -6,16 +6,27 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
+html {
+  background: #0b3b2a url('/assets/table/portrait.webp') center / cover fixed;
+}
+@media (orientation: landscape) {
+  html {
+    background-image: url('/assets/table/landscape.webp');
+  }
+}
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
-  background: #0b3b2a;
   color: #f4f7f5;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+body,
+#root {
+  background: transparent;
 }
 body {
   touch-action: manipulation;

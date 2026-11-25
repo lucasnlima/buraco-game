@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon.svg'],
+      includeAssets: ['icons/icon.png'],
       manifest: {
         name: 'Buraco Online',
         short_name: 'Buraco',
@@ -33,7 +33,14 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,webp}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/assets/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'assets', expiration: { maxEntries: 150 } },
+          },
+        ],
+        globPatterns: ['**/*.{js,css,html,svg,png}'],
         navigateFallbackDenylist: [/^\/api/, /^\/ws/],
       },
     }),

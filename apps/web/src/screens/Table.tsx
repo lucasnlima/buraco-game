@@ -9,9 +9,10 @@ import {
   teamOf,
 } from '@buraco/engine';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Avatar, CardView, Modal } from '../components';
+import { Avatar, CardView, Icon, Modal } from '../components';
 import { t } from '../i18n';
 import { buzz, useStore } from '../store';
+import { badgeUrl } from '../theme';
 import { useVoice } from '../voice';
 import { Panels } from './Panels';
 import { Scoreboard, teamNames } from './Scoreboard';
@@ -233,10 +234,7 @@ export function Table() {
   const myScore = match.totals[view.yourTeam] ?? 0;
 
   return (
-    <div
-      className="flex h-full flex-col"
-      style={{ background: 'radial-gradient(ellipse at center, #146346 0%, #0b3b2a 75%)' }}
-    >
+    <div className="flex h-full flex-col" style={{ background: 'rgba(5,30,20,0.28)' }}>
       {/* Cabeçalho */}
       <header className="flex items-center justify-between gap-2 px-2 py-1 text-xs">
         <button
@@ -244,7 +242,7 @@ export function Table() {
           onClick={() => setShowScore(true)}
           aria-label={t.scoreboard}
         >
-          📊 <span data-testid="my-score">{myScore}</span>
+          <Icon name="trophy" size={20} /> <span data-testid="my-score">{myScore}</span>
         </button>
         <div className="text-center leading-tight">
           <div className="font-bold" data-testid="turn-label">
@@ -259,7 +257,7 @@ export function Table() {
             {countdown !== null && (
               <span className={countdown <= 10 ? ' font-bold text-red-300' : ''}>
                 {' '}
-                · ⏱ {countdown}s
+                · <Icon name="timer" size={12} /> {countdown}s
               </span>
             )}
           </div>
@@ -270,7 +268,7 @@ export function Table() {
             onClick={() => setPanel('chat')}
             aria-label={t.chat}
           >
-            💬
+            <Icon name="chat" size={22} />
             {unread > 0 && (
               <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[10px]">
                 {unread}
@@ -282,7 +280,7 @@ export function Table() {
             onClick={() => setPanel('voice')}
             aria-label={t.voice}
           >
-            🎙️
+            <Icon name="headphones" size={22} />
           </button>
         </div>
       </header>
@@ -388,7 +386,7 @@ export function Table() {
             className="btn-ghost !min-h-[32px] !px-2 text-[11px]"
             onClick={() => setShowDiscard(true)}
           >
-            {t.viewDiscard}
+            <Icon name="discard-pile" size={16} /> {t.viewDiscard}
           </button>
         </div>
       </div>
@@ -445,11 +443,12 @@ export function Table() {
             useStore.getState().updateSettings({ sort: settings.sort === 'suit' ? 'rank' : 'suit' })
           }
         >
-          ⇅ {settings.sort === 'suit' ? t.sortSuit : t.sortRank}
+          <Icon name={settings.sort === 'suit' ? 'sort-suit' : 'sort-rank'} size={20} />{' '}
+          {settings.sort === 'suit' ? t.sortSuit : t.sortRank}
         </button>
         {selected.length > 0 && (
           <button className="btn-ghost !min-h-[44px] text-sm" onClick={clearSel}>
-            ✕ {selected.length}
+            <Icon name="undo-selection" size={20} /> {selected.length}
           </button>
         )}
         {myTurn && view.canRefuseDraw && (
@@ -627,13 +626,21 @@ function MeldRow({
                 data-drop={mine ? `meld:${m.id}` : undefined}
                 data-testid={`meld-${m.id}`}
                 onClick={() => onTap(m)}
-                className={`relative flex rounded-lg p-1 pt-3 ${accepts ? 'animate-pulse bg-gold/30 ring-2 ring-gold' : 'bg-black/25'}`}
+                className={`relative flex rounded-lg p-1 pt-4 ${accepts ? 'animate-pulse bg-gold/30 ring-2 ring-gold' : 'bg-black/25'}`}
                 aria-label={`${t.melds} ${m.id}`}
               >
                 {canasta && (
                   <span
-                    className={`absolute -top-0 left-1 rounded px-1 text-[9px] font-bold ${canasta === 'suja' ? 'bg-orange-500' : 'bg-emerald-500'} text-black`}
+                    className={`absolute -top-1 left-1 z-10 flex items-center gap-0.5 rounded px-1 text-[9px] font-bold ${canasta === 'suja' ? 'bg-orange-500' : 'bg-emerald-500'} text-black`}
                   >
+                    <img
+                      src={badgeUrl(
+                        canasta === 'meia_real' ? 'canastra-real' : `canastra-${canasta}`,
+                      )}
+                      alt=""
+                      width={14}
+                      height={14}
+                    />
                     {t.canasta[canasta]}
                   </span>
                 )}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Icon } from '../components';
 import { t } from '../i18n';
 import { useStore } from '../store';
 
@@ -27,9 +28,15 @@ export function Home() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-5 px-5 pb-8">
       <div className="text-center">
-        <div className="mb-1 text-5xl">🂡</div>
-        <h1 className="text-3xl font-extrabold">{t.appName}</h1>
-        <p className="text-white/70">{t.tagline}</p>
+        <img
+          src="/assets/brand/logo.webp"
+          alt=""
+          width={260}
+          height={146}
+          className="mx-auto mb-2 w-64 max-w-full rounded-3xl shadow-lg"
+        />
+        <h1 className="sr-only">{t.appName}</h1>
+        <p className="text-white/80">{t.tagline}</p>
       </div>
       <div className="flex w-full max-w-sm flex-col gap-3">
         <label className="text-sm text-white/80" htmlFor="name">
@@ -71,15 +78,15 @@ export function Home() {
       </div>
       <div className="flex gap-2">
         <button className="btn-ghost" onClick={() => setPage('ranking')}>
-          🏆 {t.ranking}
+          <Icon name="trophy" /> {t.ranking}
         </button>
         {identity && (
           <button className="btn-ghost" onClick={() => setPage('profile', identity.name)}>
-            👤 {t.profile}
+            <Icon name="crown" /> {t.profile}
           </button>
         )}
         <button className="btn-ghost" onClick={() => setPage('howto')}>
-          ❓ {t.howTo}
+          <Icon name="rules-book" /> {t.howTo}
         </button>
       </div>
       <p className="max-w-xs text-center text-xs text-white/75">{t.installHint}</p>

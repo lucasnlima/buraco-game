@@ -1,6 +1,6 @@
 import type { Config } from '@buraco/engine';
 import { useState } from 'react';
-import { Avatar } from '../components';
+import { Avatar, Icon } from '../components';
 import { t } from '../i18n';
 import { useStore } from '../store';
 import { Panels } from './Panels';
@@ -40,10 +40,10 @@ export function Lobby() {
     <div className="flex h-full flex-col overflow-y-auto px-4 pb-8">
       <header className="flex items-center justify-between py-3">
         <button className="btn-ghost" onClick={leaveRoom}>
-          ← {t.leave}
+          <Icon name="exit" /> {t.leave}
         </button>
         <button className="btn-ghost" onClick={() => setPanel(true)} aria-label={t.chat}>
-          💬 🎙️
+          <Icon name="chat" /> <Icon name="headphones" />
         </button>
       </header>
 
@@ -53,7 +53,7 @@ export function Lobby() {
           {lobby.code}
         </div>
         <button className="btn-primary mt-3" onClick={invite}>
-          📤 {t.invite}
+          <Icon name="share" /> {t.invite}
         </button>
       </div>
 
@@ -79,9 +79,13 @@ export function Lobby() {
               <div className="min-w-0">
                 <div className="truncate font-semibold">{p ? p.name : `${t.seat} ${s + 1}`}</div>
                 <div className="text-xs text-white/75">
-                  {p?.id === lobby.hostId && `👑 ${t.hostBadge} · `}
+                  {p?.id === lobby.hostId && (
+                    <>
+                      <Icon name="crown" size={14} /> {t.hostBadge} ·{' '}
+                    </>
+                  )}
                   {p && !p.connected && '⚠ offline · '}
-                  {p?.voice && '🎙️ '}
+                  {p?.voice && <Icon name="headphones" size={14} />}
                   {teamLabel(s)}
                 </div>
               </div>
