@@ -20,6 +20,7 @@ export function CardView({
   faceDown = false,
   back,
   dim = false,
+  fresh = false,
   badge,
 }: {
   card?: CardT;
@@ -28,13 +29,15 @@ export function CardView({
   faceDown?: boolean;
   back?: BackName;
   dim?: boolean;
+  /** acabou de chegar à mão: brilho azul */
+  fresh?: boolean;
   badge?: string;
 }) {
   const four = useStore((s) => s.settings.fourColors);
   const [imgFailed, setImgFailed] = useState(false);
   const h = Math.round(w * 1.4);
   const style = { width: w, height: h };
-  const cls = `card-anim relative shrink-0 select-none ${selected ? '-translate-y-3 drop-shadow-[0_0_6px_#f5c542]' : ''} ${dim ? 'opacity-60' : ''}`;
+  const cls = `card-anim relative shrink-0 select-none ${selected ? '-translate-y-3 drop-shadow-[0_0_6px_#f5c542]' : ''} ${dim ? 'opacity-60' : ''} ${fresh ? `fresh-card ${selected ? '' : '-translate-y-2'}` : ''}`;
   const ring = selected ? 'ring-2 ring-gold' : '';
 
   const url = faceDown ? backImageUrl(back) : card ? cardImageUrl(card) : null;

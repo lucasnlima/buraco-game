@@ -16,6 +16,7 @@ import { badgeUrl, deckBack } from '../theme';
 import { useVoice } from '../voice';
 import { Panels } from './Panels';
 import { Scoreboard } from './Scoreboard';
+import { TableFx } from './TableFx';
 
 const SUIT_ORDER = { S: 0, H: 1, D: 2, C: 3 } as const;
 
@@ -51,7 +52,8 @@ function useCountdown(deadline: number | null): number | null {
 }
 
 export function Table() {
-  const { game, lobby, myId, send, say, settings, unread, reactions, leaveRoom } = useStore();
+  const { game, lobby, myId, send, say, settings, unread, reactions, leaveRoom, fresh } =
+    useStore();
   const speaking = useVoice((s) => s.speaking);
   const compact = useCompact();
   const [sel, setSel] = useState<number[]>([]);
@@ -97,6 +99,16 @@ export function Table() {
     type: string;
     active: boolean;
   } | null>(null);
+
+  // A carta comprada pode ficar fora da parte visível da mão: rola até ela
+  const freshKey = fresh.join();
+  useEffect(() => {
+    const first = freshKey.split(',')[0];
+    if (first)
+      document
+        .querySelector(`[data-card-id="${first}"]`)
+        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [freshKey]);
 
   if (!game || !lobby || !view) return null;
   const { match, deadline } = game;
@@ -231,11 +243,6 @@ export function Table() {
   const opponents = Array.from({ length: n - 1 }, (_, k) => (me + 1 + k) % n);
   const myMelds = view.melds.filter((m) => m.team === view.yourTeam);
   const theirMelds = view.melds.filter((m) => m.team !== view.yourTeam);
-  const phaseChips: [string, boolean][] = [
-    [t.phase.draw, view.phase === 'draw'],
-    [t.phase.meld, view.phase === 'play'],
-    [t.phase.discard, view.phase === 'play'],
-  ];
   const reactionOf = (id: string) => reactions.filter((r) => r.from === id);
   const myScore = match.totals[view.yourTeam] ?? 0;
 
@@ -381,79 +388,85 @@ export function Table() {
 
       {/* Centro: monte, mortos e lixo numa faixa só */}
       <div
-        className="mx-1 flex shrink-0 flex-wrap items-center justify-center gap-1.5 rounded-xl bg-black/20 px-1 py-1"
+        className="mx-1 flex shrink-0 items-center gap-1 rounded-xl bg-black/20 px-1 py-1"
         data-testid="table-center"
       >
-        <div className="flex items-start gap-2">
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
           <button
             className={`flex flex-col items-center text-[11px] leading-tight text-white/90 ${myTurn && view.phase === 'draw' ? 'animate-pulse' : ''}`}
             onClick={tapStock}
             aria-label={t.stock}
             data-testid="stock"
           >
-            <CardView faceDown back={deckBack(view.stockCount)} w={pileW} />
+            <div data-fx="stock">
+              <CardView faceDown back={deckBack(view.stockCount)} w={pileW} />
+            </div>
             <span className="font-semibold">{t.stock}</span>
             <span>{view.stockCount}</span>
           </button>
-          {/* Mortos: um cruzado sobre o outro; cada um some quando é pego */}
-          <div className="flex flex-col items-center text-[11px] leading-tight text-white/90">
-            <div
-              className="relative flex items-center justify-center"
-              style={{ width: pileH, height: pileH }}
-              role="img"
-              aria-label={`${t.dead}: ${deadLeft.length}`}
-              data-testid="dead-piles"
-            >
-              {deadLeft.length === 0 && <EmptyPile w={pileW} />}
-              {deadLeft.map((tm, k) => (
-                <div
-                  key={tm}
-                  className="absolute drop-shadow-md"
-                  style={{ transform: `rotate(${[0, 90, 45][k % 3]}deg)` }}
+          <div
+            className={`flex flex-col items-center rounded-lg p-1 text-[11px] leading-tight ${drag ? 'bg-white/20 ring-2 ring-gold' : canTake ? 'bg-gold/15 ring-2 ring-gold' : ''}`}
+            data-drop="discard"
+            data-testid="discard"
+          >
+            <div className="flex items-center gap-1">
+              {hiddenDiscard > 0 && (
+                <button
+                  className="flex flex-col items-center justify-center rounded-md bg-white/10 text-xs font-bold"
+                  style={{ width: 28, height: Math.round(discardW * 1.4) }}
+                  onClick={() => setShowDiscard(true)}
+                  aria-label={t.viewDiscard}
+                  data-testid="view-discard"
                 >
-                  <CardView faceDown back={deckBack(tm)} w={pileW} />
-                </div>
-              ))}
+                  <Icon name="discard-pile" size={18} />+{hiddenDiscard}
+                </button>
+              )}
+              <button className="flex" onClick={tapDiscard} aria-label={t.discardPile}>
+                {shownDiscard.length ? (
+                  shownDiscard.map((c, i) => (
+                    <div
+                      key={c.id}
+                      data-discard-id={c.id}
+                      style={{ marginLeft: i === 0 ? 0 : -Math.round(discardW / 2) }}
+                    >
+                      <CardView card={c} w={discardW} />
+                    </div>
+                  ))
+                ) : (
+                  <EmptyPile w={discardW} />
+                )}
+              </button>
             </div>
-            <span className="font-semibold">{t.dead}</span>
+            {/* em telas baixas a dica fica na mesma linha, para não cortar a mão */}
+            <div className={`flex items-center ${compact ? 'gap-1' : 'flex-col'}`}>
+              <span className="font-semibold text-white/90">
+                {t.discardPile} · {view.discard.length}
+              </span>
+              {canTake && <span className="text-gold">{t.takeDiscard}</span>}
+            </div>
           </div>
         </div>
-        <div
-          className={`flex flex-col items-center rounded-lg p-1 text-[11px] leading-tight ${drag ? 'bg-white/20 ring-2 ring-gold' : canTake ? 'bg-gold/15 ring-2 ring-gold' : ''}`}
-          data-drop="discard"
-          data-testid="discard"
-        >
-          <div className="flex items-center gap-1">
-            {hiddenDiscard > 0 && (
-              <button
-                className="flex flex-col items-center justify-center rounded-md bg-white/10 text-xs font-bold"
-                style={{ width: 28, height: Math.round(discardW * 1.4) }}
-                onClick={() => setShowDiscard(true)}
-                aria-label={t.viewDiscard}
-                data-testid="view-discard"
+        {/* Mortos na lateral: um cruzado sobre o outro; cada um some quando é pego */}
+        <div className="flex shrink-0 flex-col items-center border-l border-white/15 pl-1 text-[11px] leading-tight text-white/90">
+          <div
+            className="relative flex items-center justify-center"
+            style={{ width: pileH, height: pileH }}
+            role="img"
+            aria-label={`${t.dead}: ${deadLeft.length}`}
+            data-testid="dead-piles"
+          >
+            {deadLeft.length === 0 && <EmptyPile w={pileW} />}
+            {deadLeft.map((tm, k) => (
+              <div
+                key={tm}
+                className="absolute drop-shadow-md"
+                style={{ transform: `rotate(${[0, 90, 45][k % 3]}deg)` }}
               >
-                <Icon name="discard-pile" size={18} />+{hiddenDiscard}
-              </button>
-            )}
-            <button className="flex" onClick={tapDiscard} aria-label={t.discardPile}>
-              {shownDiscard.length ? (
-                shownDiscard.map((c, i) => (
-                  <div key={c.id} style={{ marginLeft: i === 0 ? 0 : -Math.round(discardW / 2) }}>
-                    <CardView card={c} w={discardW} />
-                  </div>
-                ))
-              ) : (
-                <EmptyPile w={discardW} />
-              )}
-            </button>
+                <CardView faceDown back={deckBack(tm)} w={pileW} />
+              </div>
+            ))}
           </div>
-          {/* em telas baixas a dica fica na mesma linha, para não cortar a mão */}
-          <div className={`flex items-center ${compact ? 'gap-1' : 'flex-col'}`}>
-            <span className="font-semibold text-white/90">
-              {t.discardPile} · {view.discard.length}
-            </span>
-            {canTake && <span className="text-gold">{t.takeDiscard}</span>}
-          </div>
+          <span className="font-semibold">{t.dead}</span>
         </div>
       </div>
 
@@ -469,22 +482,79 @@ export function Table() {
         />
       </div>
 
-      {/* Fase */}
-      <div className="flex items-center justify-center gap-1 px-2 text-[11px]">
-        {phaseChips.map(([label, active], i) => (
-          <span
-            key={i}
-            className={`rounded-full px-2 py-0.5 ${myTurn && active ? 'bg-gold font-bold text-black' : 'bg-black/30 text-white/75'}`}
-          >
-            {i + 1}. {label}
-          </span>
-        ))}
+      {/* Meu lugar, fase e ações: acima da mão, em altura fixa para a mesa não pular */}
+      <div className={`flex shrink-0 items-center gap-2 px-2 ${compact ? 'h-12' : 'h-[76px]'}`}>
+        <div
+          className={`relative flex w-14 shrink-0 flex-col items-center rounded-xl p-0.5 ${myTurn ? 'turn-glow bg-gold/25 ring-2 ring-gold' : 'bg-black/20'}`}
+          data-testid="me-seat"
+          data-seat={me}
+        >
+          <Avatar
+            name={names[me] ?? '?'}
+            pick={lobby.players.find((p) => p.id === lobby.order[me])?.avatar}
+            size={compact ? 26 : 38}
+            speaking={!!speaking[myId ?? '']}
+          />
+          <div className="max-w-full truncate text-[11px] font-semibold">{names[me]}</div>
+          <Reactions list={reactionOf(lobby.order[me]!)} />
+        </div>
+        <div
+          className={`flex min-w-0 flex-1 items-center justify-center gap-1 ${compact ? '' : 'flex-col'}`}
+        >
+          {view.status === 'playing' && (
+            <span
+              className={`flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1 text-[11px] ${myTurn ? 'text-white' : 'text-white/65'}`}
+              role="status"
+              data-testid="phase-pill"
+            >
+              {myTurn && <span className="h-1.5 w-1.5 rounded-full bg-gold" />}
+              {!myTurn ? t.waitTurn : view.phase === 'draw' ? t.phase.draw : t.phasePlay}
+            </span>
+          )}
+          <div className="flex items-center gap-1">
+            {selected.length > 0 && (
+              <button className="btn-ghost !min-h-[32px] !px-2 text-xs" onClick={clearSel}>
+                <Icon name="undo-selection" size={16} /> {selected.length}
+              </button>
+            )}
+            {myTurn && view.canRefuseDraw && (
+              <button
+                className="btn-ghost !min-h-[32px] !px-2 text-xs"
+                onClick={() => act({ t: 'game', action: { type: 'REJECT_DRAW' } })}
+              >
+                ↩ {t.refuse}
+              </button>
+            )}
+          </div>
+        </div>
+        <div className={`flex w-28 shrink-0 gap-1 ${compact ? '!w-52' : 'flex-col'}`}>
+          {myTurn && view.phase === 'play' && (
+            <>
+              <button
+                className="btn-primary !min-h-[36px] flex-1 !px-2 text-sm"
+                disabled={!canMeld}
+                onClick={onMeldClick}
+                data-testid="meld-btn"
+              >
+                {t.meld}
+              </button>
+              <button
+                className="btn-danger !min-h-[36px] flex-1 !px-2 text-sm"
+                disabled={selected.length !== 1}
+                onClick={() => doDiscard(selected[0]!)}
+                data-testid="discard-btn"
+              >
+                {t.discard}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Mão em leque */}
       <div
-        className="flex overflow-x-auto px-3 pb-1 pt-4"
-        style={{ touchAction: 'pan-x' }}
+        className="flex shrink-0 overflow-x-auto px-3 pt-4"
+        style={{ touchAction: 'pan-x', paddingBottom: 'calc(8px + var(--safe-bottom))' }}
         data-testid="hand"
       >
         {hand.map((c, i) => (
@@ -493,7 +563,7 @@ export function Table() {
             data-card-id={c.id}
             data-code={cardCode(c)}
             onPointerDown={(e) => onCardPointerDown(e, c)}
-            className="shrink-0 cursor-grab"
+            className="relative shrink-0 cursor-grab"
             style={{
               marginLeft: i === 0 ? 0 : -Math.round(small * 0.46),
               touchAction: 'pan-x',
@@ -505,67 +575,19 @@ export function Table() {
               w={small}
               selected={selected.includes(c.id)}
               dim={drag?.ids.includes(c.id)}
+              fresh={fresh.includes(c.id)}
             />
+            {/* o selo só aparece em poucas cartas; ao pegar o lixo, o brilho basta */}
+            {fresh.includes(c.id) && fresh.length <= 2 && (
+              <span
+                className="pointer-events-none absolute -top-4 left-0 rounded bg-sky-400 px-1 text-[9px] font-black uppercase leading-4 text-black"
+                data-testid="fresh-tag"
+              >
+                {t.newCard}
+              </span>
+            )}
           </div>
         ))}
-      </div>
-
-      {/* Meu lugar (canto) e ações */}
-      <div
-        className="flex items-center gap-1 px-2 pt-1"
-        style={{ paddingBottom: 'calc(8px + var(--safe-bottom))' }}
-      >
-        <div
-          className={`relative flex w-16 shrink-0 flex-col items-center rounded-xl p-0.5 ${myTurn ? 'bg-gold/25 ring-2 ring-gold' : 'bg-black/20'}`}
-          data-testid="me-seat"
-        >
-          <Avatar
-            name={names[me] ?? '?'}
-            pick={lobby.players.find((p) => p.id === lobby.order[me])?.avatar}
-            size={compact ? 28 : 46}
-            speaking={!!speaking[myId ?? '']}
-          />
-          <div className="max-w-full truncate text-[11px] font-semibold">{names[me]}</div>
-          <Reactions list={reactionOf(lobby.order[me]!)} />
-        </div>
-        <div className="flex min-h-[44px] min-w-0 flex-1 flex-wrap items-center justify-center gap-2">
-          {selected.length > 0 && (
-            <button className="btn-ghost !min-h-[44px] text-sm" onClick={clearSel}>
-              <Icon name="undo-selection" size={20} /> {selected.length}
-            </button>
-          )}
-          {myTurn && view.canRefuseDraw && (
-            <button
-              className="btn-ghost !min-h-[44px] text-sm"
-              onClick={() => act({ t: 'game', action: { type: 'REJECT_DRAW' } })}
-            >
-              ↩ {t.refuse}
-            </button>
-          )}
-          {myTurn && view.phase === 'play' && (
-            <>
-              <button
-                className="btn-primary"
-                disabled={!canMeld}
-                onClick={onMeldClick}
-                data-testid="meld-btn"
-              >
-                {t.meld}
-              </button>
-              <button
-                className="btn-danger"
-                disabled={selected.length !== 1}
-                onClick={() => doDiscard(selected[0]!)}
-                data-testid="discard-btn"
-              >
-                {t.discard}
-              </button>
-            </>
-          )}
-          {!myTurn && view.status === 'playing' && selected.length === 0 && (
-            <span className="text-xs text-white/75">{t.selectCards}</span>
-          )}
-        </div>
       </div>
 
       {/* Carta sendo arrastada */}
@@ -673,6 +695,8 @@ export function Table() {
         </Modal>
       )}
 
+      <TableFx view={view} handNumber={match.handNumber} names={names} />
+
       {panel && <Panels initial={panel} onClose={() => setPanel(null)} />}
     </div>
   );
@@ -728,11 +752,12 @@ function OpponentSeat({
   const length = w + step * Math.max(0, drawn - 1);
   return (
     <div
-      className={`relative flex min-w-0 items-center rounded-xl p-1 ${vertical ? 'w-16 shrink-0 flex-col gap-1 self-center' : 'gap-2'} ${isTurn ? 'bg-gold/25 ring-2 ring-gold' : 'bg-black/20'}`}
+      className={`relative flex min-w-0 items-center rounded-xl p-1 ${vertical ? 'w-14 shrink-0 flex-col gap-1 self-center' : 'gap-2'} ${isTurn ? 'turn-glow bg-gold/25 ring-2 ring-gold' : 'bg-black/20'}`}
       data-testid={`opp-${index}`}
+      data-seat={index}
     >
-      <div className="flex w-[60px] min-w-0 flex-col items-center leading-tight">
-        <Avatar name={name} pick={avatar} size={small ? 30 : 46} speaking={speaking} />
+      <div className="flex w-[52px] min-w-0 flex-col items-center leading-tight">
+        <Avatar name={name} pick={avatar} size={small ? 28 : 38} speaking={speaking} />
         <div className="max-w-full truncate text-[11px] font-semibold">{name}</div>
         {partner && <div className="text-[10px] text-gold">({t.partner})</div>}
       </div>
@@ -830,7 +855,11 @@ function MeldRow({
                   </span>
                 )}
                 {m.slots.map((s, i) => (
-                  <div key={s.card.id} style={{ marginLeft: i === 0 ? 0 : -18 }}>
+                  <div
+                    key={s.card.id}
+                    data-meld-card={s.card.id}
+                    style={{ marginLeft: i === 0 ? 0 : -18 }}
+                  >
                     <CardView card={s.card} w={34} badge={s.wild ? 'C' : undefined} />
                   </div>
                 ))}

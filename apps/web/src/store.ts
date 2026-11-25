@@ -1,6 +1,7 @@
 import type { PlayerView } from '@buraco/engine';
 import { type ClientMsg, type MatchSummary, type ServerMsg, avatarSchema } from '@buraco/protocol';
 import { create } from 'zustand';
+import { nextFresh } from './fx';
 import { t } from './i18n';
 import { startLocalGame } from './local';
 import { type Identity, api, loadIdentity, newToken, saveIdentity, wsUrl } from './net';
@@ -49,6 +50,8 @@ interface State {
   connected: boolean;
   lobby: Lobby | null;
   game: { view: PlayerView; match: MatchSummary; deadline: number | null } | null;
+  /** cartas recém-chegadas à minha mão (destacadas na mesa) */
+  fresh: number[];
   chat: ChatLine[];
   unread: number;
   reactions: Reaction[];
@@ -131,9 +134,15 @@ export const useStore = create<State>()((set, get) => {
       case 'lobby':
         set({ lobby: m });
         break;
-      case 'state':
-        set({ game: { view: m.view, match: m.match, deadline: m.deadline } });
+      case 'state': {
+        const { game, fresh } = get();
+        const prev = game && { view: game.view, handNumber: game.match.handNumber };
+        set({
+          game: { view: m.view, match: m.match, deadline: m.deadline },
+          fresh: nextFresh(fresh, prev, { view: m.view, handNumber: m.match.handNumber }),
+        });
         break;
+      }
       case 'error':
         if (['ROOM_FULL', 'IN_PROGRESS', 'NAME_TAKEN'].includes(m.code)) {
           intentionalClose = true;
@@ -168,6 +177,7 @@ export const useStore = create<State>()((set, get) => {
     connected: false,
     lobby: null,
     game: null,
+    fresh: [],
     chat: [],
     unread: 0,
     reactions: [],
