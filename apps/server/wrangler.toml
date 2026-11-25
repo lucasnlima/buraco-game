@@ -1,0 +1,23 @@
+name = "buraco-server"
+main = "src/worker.ts"
+compatibility_date = "2025-01-01"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomDO"
+
+# Plano gratuito exige Durable Objects com SQLite.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomDO"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "buraco"
+database_id = "COLE_AQUI_O_ID_DO_D1" # wrangler d1 create buraco
+migrations_dir = "migrations"
+
+[vars]
+ALLOWED_ORIGIN = "*" # troque pelo domínio do front em produção
+
+# Segredos (wrangler secret put): TURN_KEY_ID, TURN_KEY_API_TOKEN

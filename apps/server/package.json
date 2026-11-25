@@ -1,0 +1,27 @@
+{
+  "name": "@buraco/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:node": "tsx src/dev.ts",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@buraco/engine": "workspace:*",
+    "@buraco/protocol": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.100.0",
+    "ws": "^8.18.0"
+  }
+}
