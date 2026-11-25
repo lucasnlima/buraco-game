@@ -7,6 +7,7 @@ import {
   cardImageUrl,
   iconUrl,
   suitUrl,
+  type BackName,
 } from './theme';
 import { rankLabel } from '@buraco/engine';
 import { useState, type ReactNode } from 'react';
@@ -17,6 +18,7 @@ export function CardView({
   w = 52,
   selected = false,
   faceDown = false,
+  back,
   dim = false,
   badge,
 }: {
@@ -24,6 +26,7 @@ export function CardView({
   w?: number;
   selected?: boolean;
   faceDown?: boolean;
+  back?: BackName;
   dim?: boolean;
   badge?: string;
 }) {
@@ -34,7 +37,7 @@ export function CardView({
   const cls = `card-anim relative shrink-0 select-none ${selected ? '-translate-y-3 drop-shadow-[0_0_6px_#f5c542]' : ''} ${dim ? 'opacity-60' : ''}`;
   const ring = selected ? 'ring-2 ring-gold' : '';
 
-  const url = faceDown ? backImageUrl() : card ? cardImageUrl(card) : null;
+  const url = faceDown ? backImageUrl(back) : card ? cardImageUrl(card) : null;
   if (url && !imgFailed) {
     return (
       <div
@@ -245,7 +248,7 @@ export function Avatar({
       draggable={false}
       width={size}
       height={size}
-      className={`shrink-0 rounded-full bg-felt-700 object-cover ${speaking ? 'speaking-ring' : ''}`}
+      className={`shrink-0 rounded-full border-2 border-white/70 bg-felt-700 object-cover ${speaking ? 'speaking-ring' : ''}`}
       style={{ width: size, height: size }}
     />
   );

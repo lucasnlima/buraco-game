@@ -8,14 +8,14 @@ import {
   resolveNewMeld,
   teamOf,
 } from '@buraco/engine';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type Key, useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, CardView, Icon, Modal } from '../components';
 import { t } from '../i18n';
 import { buzz, useStore } from '../store';
-import { badgeUrl } from '../theme';
+import { badgeUrl, deckBack } from '../theme';
 import { useVoice } from '../voice';
 import { Panels } from './Panels';
-import { Scoreboard, teamNames } from './Scoreboard';
+import { Scoreboard } from './Scoreboard';
 
 const SUIT_ORDER = { S: 0, H: 1, D: 2, C: 3 } as const;
 
@@ -107,8 +107,16 @@ export function Table() {
   const myTurn = view.status === 'playing' && view.turn === me;
   const cfg = view.config;
   const isHost = lobby.hostId === myId;
-  const tn = teamNames(n, names);
   const small = compact ? 38 : 50;
+  const pileW = compact ? 34 : 46;
+  const pileH = Math.round(pileW * 1.4);
+  const deadLeft = view.deadCounts.flatMap((c, tm) => (c > 0 && !view.deadTaken[tm] ? [tm] : []));
+  const discardW = compact ? 34 : 42;
+  // Mostra as cartas do topo; passando do limite, o restante fica em "ver lixo"
+  const discardLimit = window.innerWidth >= 640 ? 12 : 6;
+  const hiddenDiscard = Math.max(0, view.discard.length - discardLimit);
+  const shownDiscard = view.discard.slice(hiddenDiscard);
+  const canTake = myTurn && view.phase === 'draw' && view.discard.length > 0;
 
   const canMeld = selCards.length >= 3 && !!resolveNewMeld(selCards, cfg);
   const wildPositions = canMeld
@@ -152,10 +160,8 @@ export function Table() {
     act({ t: 'game', action: { type: 'DRAW_STOCK' } });
   }
   function tapDiscard() {
-    if (!myTurn) return setShowDiscard(true);
-    if (view!.phase === 'draw' && view!.discard.length)
-      act({ t: 'game', action: { type: 'TAKE_DISCARD' } });
-    else setShowDiscard(true);
+    if (canTake) act({ t: 'game', action: { type: 'TAKE_DISCARD' } });
+    else if (hiddenDiscard > 0) setShowDiscard(true);
   }
   function doDiscard(id: number) {
     act({ t: 'game', action: { type: 'DISCARD', cardId: id } });
@@ -233,6 +239,36 @@ export function Table() {
   const reactionOf = (id: string) => reactions.filter((r) => r.from === id);
   const myScore = match.totals[view.yourTeam] ?? 0;
 
+  // Posições na mesa: eu embaixo; os demais à esquerda, em cima e à direita.
+  // Em telas baixas não há altura para as laterais, então todos vão para cima.
+  const [left, top, right] = compact
+    ? [undefined, undefined, undefined]
+    : n === 2
+      ? [undefined, opponents[0], undefined]
+      : n === 3
+        ? [opponents[0], undefined, opponents[1]]
+        : [opponents[0], opponents[1], opponents[2]];
+  const topRow = compact ? opponents : top === undefined ? [] : [top];
+  const seat = (i: number, side: SeatSide) => {
+    const pid = lobby.order[i]!;
+    const pl = lobby.players.find((p) => p.id === pid);
+    return (
+      <OpponentSeat
+        key={i}
+        index={i}
+        side={side}
+        small={compact}
+        name={names[i] ?? '?'}
+        cards={view.handCounts[i] ?? 0}
+        partner={n === 4 && teamOf(n, i) === view.yourTeam}
+        isTurn={view.turn === i && view.status === 'playing'}
+        offline={!!pl && !pl.connected}
+        speaking={!!speaking[pid]}
+        reactions={reactionOf(pid)}
+      />
+    );
+  };
+
   return (
     <div className="flex h-full flex-col" style={{ background: 'rgba(5,30,20,0.28)' }}>
       {/* Cabeçalho */}
@@ -244,8 +280,8 @@ export function Table() {
         >
           <Icon name="trophy" size={20} /> <span data-testid="my-score">{myScore}</span>
         </button>
-        <div className="text-center leading-tight">
-          <div className="font-bold" data-testid="turn-label">
+        <div className="min-w-0 flex-1 text-center leading-tight">
+          <div className="truncate font-bold" data-testid="turn-label">
             {view.status === 'ended'
               ? '—'
               : myTurn
@@ -263,6 +299,18 @@ export function Table() {
           </div>
         </div>
         <div className="flex gap-1">
+          <button
+            className="btn-ghost !min-h-[44px] !min-w-[44px] flex-col !gap-0 !px-1 text-[10px] leading-none"
+            onClick={() =>
+              useStore
+                .getState()
+                .updateSettings({ sort: settings.sort === 'suit' ? 'rank' : 'suit' })
+            }
+            data-testid="sort-btn"
+          >
+            <Icon name={settings.sort === 'suit' ? 'sort-suit' : 'sort-rank'} size={20} />
+            {settings.sort === 'suit' ? t.sortSuit : t.sortRank}
+          </button>
           {lobby.code === 'LOCAL' ? (
             <>
               <button
@@ -306,39 +354,109 @@ export function Table() {
         </div>
       </header>
 
-      {/* Adversários */}
-      <div className="flex justify-around gap-1 px-2 py-1">
-        {opponents.map((i) => {
-          const pid = lobby.order[i]!;
-          const pl = lobby.players.find((p) => p.id === pid);
-          const isTurn = view.turn === i && view.status === 'playing';
-          return (
-            <div
-              key={i}
-              className={`relative flex min-w-0 flex-1 flex-col items-center rounded-xl p-1 ${isTurn ? 'bg-gold/25 ring-2 ring-gold' : 'bg-black/20'}`}
-              data-testid={`opp-${i}`}
-            >
-              <Avatar name={names[i] ?? '?'} size={compact ? 28 : 38} speaking={!!speaking[pid]} />
-              <div className="max-w-full truncate text-xs font-semibold">
-                {names[i]}{' '}
-                {n === 4 && teamOf(n, i) === view.yourTeam && (
-                  <span className="text-gold">({t.partner})</span>
-                )}
-              </div>
-              <div className="text-[11px] text-white/70">
-                🂠 {view.handCounts[i]} {pl && !pl.connected && '⚠'}
-              </div>
-              {reactionOf(pid).map((r) => (
-                <span key={r.key} className="float-up pointer-events-none absolute -top-1 text-2xl">
-                  {r.emoji}
-                </span>
-              ))}
-            </div>
-          );
-        })}
+      {/* Adversário de cima (em telas baixas, todos) */}
+      {topRow.length > 0 && (
+        <div className="flex justify-center gap-2 px-2 py-0.5">
+          {topRow.map((i) => seat(i, 'top'))}
+        </div>
+      )}
+
+      {/* Laterais + jogos dos adversários (acima do centro) */}
+      <div className={`flex min-h-0 ${compact && theirMelds.length === 0 ? 'hidden' : 'flex-1'}`}>
+        {left !== undefined && seat(left, 'left')}
+        <div className="min-w-0 flex-1 overflow-y-auto px-1" data-testid="their-melds-area">
+          {theirMelds.length > 0 && (
+            <MeldRow
+              title={t.theirMelds}
+              melds={theirMelds}
+              selCards={[]}
+              cfg={cfg}
+              onTap={() => {}}
+            />
+          )}
+        </div>
+        {right !== undefined && seat(right, 'right')}
       </div>
 
-      {/* Jogos baixados */}
+      {/* Centro: monte, mortos e lixo numa faixa só */}
+      <div
+        className="mx-1 flex shrink-0 flex-wrap items-center justify-center gap-1.5 rounded-xl bg-black/20 px-1 py-1"
+        data-testid="table-center"
+      >
+        <div className="flex items-start gap-2">
+          <button
+            className={`flex flex-col items-center text-[11px] leading-tight text-white/90 ${myTurn && view.phase === 'draw' ? 'animate-pulse' : ''}`}
+            onClick={tapStock}
+            aria-label={t.stock}
+            data-testid="stock"
+          >
+            <CardView faceDown back={deckBack(view.stockCount)} w={pileW} />
+            <span className="font-semibold">{t.stock}</span>
+            <span>{view.stockCount}</span>
+          </button>
+          {/* Mortos: um cruzado sobre o outro; cada um some quando é pego */}
+          <div className="flex flex-col items-center text-[11px] leading-tight text-white/90">
+            <div
+              className="relative flex items-center justify-center"
+              style={{ width: pileH, height: pileH }}
+              role="img"
+              aria-label={`${t.dead}: ${deadLeft.length}`}
+              data-testid="dead-piles"
+            >
+              {deadLeft.length === 0 && <EmptyPile w={pileW} />}
+              {deadLeft.map((tm, k) => (
+                <div
+                  key={tm}
+                  className="absolute drop-shadow-md"
+                  style={{ transform: `rotate(${[0, 90, 45][k % 3]}deg)` }}
+                >
+                  <CardView faceDown back={deckBack(tm)} w={pileW} />
+                </div>
+              ))}
+            </div>
+            <span className="font-semibold">{t.dead}</span>
+          </div>
+        </div>
+        <div
+          className={`flex flex-col items-center rounded-lg p-1 text-[11px] leading-tight ${drag ? 'bg-white/20 ring-2 ring-gold' : canTake ? 'bg-gold/15 ring-2 ring-gold' : ''}`}
+          data-drop="discard"
+          data-testid="discard"
+        >
+          <div className="flex items-center gap-1">
+            {hiddenDiscard > 0 && (
+              <button
+                className="flex flex-col items-center justify-center rounded-md bg-white/10 text-xs font-bold"
+                style={{ width: 28, height: Math.round(discardW * 1.4) }}
+                onClick={() => setShowDiscard(true)}
+                aria-label={t.viewDiscard}
+                data-testid="view-discard"
+              >
+                <Icon name="discard-pile" size={18} />+{hiddenDiscard}
+              </button>
+            )}
+            <button className="flex" onClick={tapDiscard} aria-label={t.discardPile}>
+              {shownDiscard.length ? (
+                shownDiscard.map((c, i) => (
+                  <div key={c.id} style={{ marginLeft: i === 0 ? 0 : -Math.round(discardW / 2) }}>
+                    <CardView card={c} w={discardW} />
+                  </div>
+                ))
+              ) : (
+                <EmptyPile w={discardW} />
+              )}
+            </button>
+          </div>
+          {/* em telas baixas a dica fica na mesma linha, para não cortar a mão */}
+          <div className={`flex items-center ${compact ? 'gap-1' : 'flex-col'}`}>
+            <span className="font-semibold text-white/90">
+              {t.discardPile} · {view.discard.length}
+            </span>
+            {canTake && <span className="text-gold">{t.takeDiscard}</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* Seus jogos (abaixo do centro) */}
       <div className="min-h-0 flex-1 overflow-y-auto px-2" data-testid="melds-area">
         <MeldRow
           title={t.yourMelds}
@@ -348,68 +466,6 @@ export function Table() {
           cfg={cfg}
           onTap={tapMeld}
         />
-        {theirMelds.length > 0 && (
-          <MeldRow
-            title={t.theirMelds}
-            melds={theirMelds}
-            selCards={[]}
-            cfg={cfg}
-            onTap={() => {}}
-          />
-        )}
-      </div>
-
-      {/* Centro: monte, lixo, mortos */}
-      <div className="flex items-end justify-center gap-4 px-2 py-1">
-        <button
-          className={`flex flex-col items-center ${myTurn && view.phase === 'draw' ? 'animate-pulse' : ''}`}
-          onClick={tapStock}
-          aria-label={t.stock}
-          data-testid="stock"
-        >
-          <CardView faceDown w={compact ? 34 : 44} />
-          <span className="text-[11px] text-white/70">
-            {t.stock} · {view.stockCount}
-          </span>
-        </button>
-        <button
-          className={`flex flex-col items-center rounded-lg p-1 ${drag ? 'bg-white/20 ring-2 ring-gold' : ''}`}
-          data-drop="discard"
-          onClick={tapDiscard}
-          aria-label={t.discardPile}
-          data-testid="discard"
-        >
-          {view.discard.length ? (
-            <CardView card={view.discard[view.discard.length - 1]!} w={compact ? 34 : 44} />
-          ) : (
-            <div
-              className="rounded-md border-2 border-dashed border-white/30"
-              style={{ width: compact ? 34 : 44, height: compact ? 48 : 62 }}
-            />
-          )}
-          <span className="text-[11px] text-white/70">
-            {t.discardPile} · {view.discard.length}
-          </span>
-        </button>
-        <div className="flex flex-col items-center gap-0.5 text-[11px] text-white/70">
-          {view.deadCounts.map((c, tm) => (
-            <span key={tm} className={tm === view.yourTeam ? 'text-gold' : ''}>
-              {t.dead}{' '}
-              {n === 4 || n === 2
-                ? tm === view.yourTeam
-                  ? '(você)'
-                  : ''
-                : `(${tn[tm]?.split(' ')[0] ?? ''})`}
-              : {view.deadTaken[tm] ? t.deadTaken : c ? `${c} 🂠` : '—'}
-            </span>
-          ))}
-          <button
-            className="btn-ghost !min-h-[32px] !px-2 text-[11px]"
-            onClick={() => setShowDiscard(true)}
-          >
-            <Icon name="discard-pile" size={16} /> {t.viewDiscard}
-          </button>
-        </div>
       </div>
 
       {/* Fase */}
@@ -453,56 +509,61 @@ export function Table() {
         ))}
       </div>
 
-      {/* Ações */}
+      {/* Meu lugar (canto) e ações */}
       <div
-        className="flex flex-wrap items-center justify-center gap-2 px-2 pt-1"
+        className="flex items-center gap-1 px-2 pt-1"
         style={{ paddingBottom: 'calc(8px + var(--safe-bottom))' }}
       >
-        <button
-          className="btn-ghost !min-h-[44px] text-sm"
-          onClick={() =>
-            useStore.getState().updateSettings({ sort: settings.sort === 'suit' ? 'rank' : 'suit' })
-          }
+        <div
+          className={`relative flex w-16 shrink-0 flex-col items-center rounded-xl p-0.5 ${myTurn ? 'bg-gold/25 ring-2 ring-gold' : 'bg-black/20'}`}
+          data-testid="me-seat"
         >
-          <Icon name={settings.sort === 'suit' ? 'sort-suit' : 'sort-rank'} size={20} />{' '}
-          {settings.sort === 'suit' ? t.sortSuit : t.sortRank}
-        </button>
-        {selected.length > 0 && (
-          <button className="btn-ghost !min-h-[44px] text-sm" onClick={clearSel}>
-            <Icon name="undo-selection" size={20} /> {selected.length}
-          </button>
-        )}
-        {myTurn && view.canRefuseDraw && (
-          <button
-            className="btn-ghost !min-h-[44px] text-sm"
-            onClick={() => act({ t: 'game', action: { type: 'REJECT_DRAW' } })}
-          >
-            ↩ {t.refuse}
-          </button>
-        )}
-        {myTurn && view.phase === 'play' && (
-          <>
-            <button
-              className="btn-primary"
-              disabled={!canMeld}
-              onClick={onMeldClick}
-              data-testid="meld-btn"
-            >
-              {t.meld}
+          <Avatar
+            name={names[me] ?? '?'}
+            size={compact ? 28 : 46}
+            speaking={!!speaking[myId ?? '']}
+          />
+          <div className="max-w-full truncate text-[11px] font-semibold">{names[me]}</div>
+          <Reactions list={reactionOf(lobby.order[me]!)} />
+        </div>
+        <div className="flex min-h-[44px] min-w-0 flex-1 flex-wrap items-center justify-center gap-2">
+          {selected.length > 0 && (
+            <button className="btn-ghost !min-h-[44px] text-sm" onClick={clearSel}>
+              <Icon name="undo-selection" size={20} /> {selected.length}
             </button>
+          )}
+          {myTurn && view.canRefuseDraw && (
             <button
-              className="btn-danger"
-              disabled={selected.length !== 1}
-              onClick={() => doDiscard(selected[0]!)}
-              data-testid="discard-btn"
+              className="btn-ghost !min-h-[44px] text-sm"
+              onClick={() => act({ t: 'game', action: { type: 'REJECT_DRAW' } })}
             >
-              {t.discard}
+              ↩ {t.refuse}
             </button>
-          </>
-        )}
-        {!myTurn && view.status === 'playing' && selected.length === 0 && (
-          <span className="text-xs text-white/75">{t.selectCards}</span>
-        )}
+          )}
+          {myTurn && view.phase === 'play' && (
+            <>
+              <button
+                className="btn-primary"
+                disabled={!canMeld}
+                onClick={onMeldClick}
+                data-testid="meld-btn"
+              >
+                {t.meld}
+              </button>
+              <button
+                className="btn-danger"
+                disabled={selected.length !== 1}
+                onClick={() => doDiscard(selected[0]!)}
+                data-testid="discard-btn"
+              >
+                {t.discard}
+              </button>
+            </>
+          )}
+          {!myTurn && view.status === 'playing' && selected.length === 0 && (
+            <span className="text-xs text-white/75">{t.selectCards}</span>
+          )}
+        </div>
       </div>
 
       {/* Carta sendo arrastada */}
@@ -544,12 +605,11 @@ export function Table() {
           onClose={() => setShowDiscard(false)}
         >
           <div className="flex flex-wrap gap-1">
-            {view.discard.length === 0 && <p className="text-white/75">—</p>}
             {view.discard.map((c) => (
               <CardView key={c.id} card={c} w={42} />
             ))}
           </div>
-          {myTurn && view.phase === 'draw' && view.discard.length > 0 && (
+          {canTake && (
             <button
               className="btn-primary mt-3 w-full"
               onClick={() => {
@@ -613,6 +673,106 @@ export function Table() {
 
       {panel && <Panels initial={panel} onClose={() => setPanel(null)} />}
     </div>
+  );
+}
+
+type SeatSide = 'left' | 'top' | 'right';
+type Reaction = { key: Key; emoji: string };
+
+function Reactions({ list }: { list: Reaction[] }) {
+  return (
+    <>
+      {list.map((r) => (
+        <span key={r.key} className="float-up pointer-events-none absolute -top-1 text-2xl">
+          {r.emoji}
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** Lugar de um adversário: avatar, nome e o leque de cartas viradas com a quantidade. */
+function OpponentSeat({
+  index,
+  side,
+  small,
+  name,
+  cards,
+  partner,
+  isTurn,
+  offline,
+  speaking,
+  reactions,
+}: {
+  index: number;
+  side: SeatSide;
+  small: boolean;
+  name: string;
+  cards: number;
+  partner: boolean;
+  isTurn: boolean;
+  offline: boolean;
+  speaking: boolean;
+  reactions: Reaction[];
+}) {
+  const vertical = side !== 'top';
+  const w = 22; // largura de cada carta do leque
+  const h = Math.round(w * 1.4);
+  const drawn = Math.min(cards, 11); // o número mostra o total; o desenho para em 11
+  // comprimento máximo do leque: as cartas se apertam conforme a quantidade
+  const step = Math.min(8, (vertical ? 56 : 80) / Math.max(1, drawn - 1));
+  const length = w + step * Math.max(0, drawn - 1);
+  return (
+    <div
+      className={`relative flex min-w-0 items-center rounded-xl p-1 ${vertical ? 'w-16 shrink-0 flex-col gap-1 self-center' : 'gap-2'} ${isTurn ? 'bg-gold/25 ring-2 ring-gold' : 'bg-black/20'}`}
+      data-testid={`opp-${index}`}
+    >
+      <div className="flex w-[60px] min-w-0 flex-col items-center leading-tight">
+        <Avatar name={name} size={small ? 30 : 46} speaking={speaking} />
+        <div className="max-w-full truncate text-[11px] font-semibold">{name}</div>
+        {partner && <div className="text-[10px] text-gold">({t.partner})</div>}
+      </div>
+      <div
+        className="relative shrink-0"
+        style={vertical ? { width: h, height: length } : { width: length, height: h }}
+        role="img"
+        aria-label={`${cards} cartas`}
+      >
+        {Array.from({ length: drawn }, (_, k) => (
+          <div
+            key={k}
+            aria-hidden
+            className="absolute"
+            style={
+              vertical
+                ? {
+                    // carta deitada, virada para o centro da mesa
+                    top: k * step - (h - w) / 2,
+                    left: (h - w) / 2,
+                    transform: `rotate(${side === 'left' ? 90 : -90}deg)`,
+                  }
+                : { top: 0, left: k * step }
+            }
+          >
+            <CardView faceDown back={deckBack(k + index)} w={w} />
+          </div>
+        ))}
+        <span className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/80 px-1.5 text-[11px] font-bold">
+          {cards}
+        </span>
+      </div>
+      {offline && <span className="text-xs">⚠</span>}
+      <Reactions list={reactions} />
+    </div>
+  );
+}
+
+function EmptyPile({ w }: { w: number }) {
+  return (
+    <div
+      className="rounded-md border-2 border-dashed border-white/30"
+      style={{ width: w, height: Math.round(w * 1.4) }}
+    />
   );
 }
 

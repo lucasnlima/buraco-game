@@ -6,12 +6,14 @@ import { assetUrl } from './assets';
  * Tema visual. Imagens ficam em `public/assets/` (veja public/assets/README.md).
  * Cartas sem imagem (A, 2–10) são desenhadas em SVG no mesmo estilo.
  */
+export type BackName = 'back' | 'back-blue' | 'back-wine';
+
 export const theme = {
   useImages: true,
   basePath: '/assets',
   /** verso padrão: 'back' | 'back-blue' | 'back-wine' */
-  back: 'back',
-  avatarCount: 12,
+  back: 'back' as BackName,
+  avatarCount: 13,
 };
 
 /** Cartas que têm arte pronta (figuras e coringas). */
@@ -25,8 +27,11 @@ export function cardImageUrl(c: Card): string | null {
   if (c.rank === 0) code = `JK${((c.id - 104) % 2) + 1}`; // 4 coringas reutilizam 2 artes
   return IMAGE_CARDS.has(code) ? assetUrl(`${theme.basePath}/cards/${code}.webp`) : null;
 }
-export const backImageUrl = (): string | null =>
-  theme.useImages ? assetUrl(`${theme.basePath}/cards/${theme.back}.webp`) : null;
+export const backImageUrl = (back: BackName = theme.back): string | null =>
+  theme.useImages ? assetUrl(`${theme.basePath}/cards/${back}.webp`) : null;
+
+/** Mesa com dois baralhos: alterna os versos. Só visual — não revela qual carta é. */
+export const deckBack = (i: number): BackName => (i % 2 === 0 ? 'back-blue' : 'back-wine');
 
 export const avatarUrl = (name: string): string => {
   const h = [...name].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
