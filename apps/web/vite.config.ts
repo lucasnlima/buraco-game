@@ -48,7 +48,8 @@ export default defineConfig({
                 {
                   urlPattern: ({ url }) => url.pathname.startsWith('/assets/'),
                   handler: 'CacheFirst',
-                  options: { cacheName: 'assets', expiration: { maxEntries: 150 } },
+                  // CacheFirst: ao trocar um arquivo de /assets sem mudar o nome, suba a versão
+                  options: { cacheName: 'assets-v2', expiration: { maxEntries: 150 } },
                 },
               ],
               globPatterns: ['**/*.{js,css,html,svg,png}'],
