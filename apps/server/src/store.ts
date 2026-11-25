@@ -1,4 +1,4 @@
-import type { ProfileData, RankingPeriod } from '@buraco/protocol';
+import type { RankingPeriod } from '@buraco/protocol';
 import { type MatchRecord, type Store, hashToken, periodStart, toRow } from './store-core';
 
 export * from './store-core';
