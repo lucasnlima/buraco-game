@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { assetUrl } from '../assets';
 import { Icon, Modal } from '../components';
 import { t } from '../i18n';
@@ -27,6 +27,24 @@ export function Home() {
 
   const valid = name.trim().length >= 2 && name.trim().length <= 20;
 
+  // Veio pelo link de convite: a tela vira "entrar na sala", com um botão só em destaque
+  const inviteCode = invite?.trim().toUpperCase() ?? '';
+  const [otherOptions, setOtherOptions] = useState(false);
+  const invited = !localOnly && !otherOptions && /^[A-Z0-9]{5}$/.test(inviteCode);
+  const nameInput = useRef<HTMLInputElement>(null);
+
+  // O botão fica sempre aceso; sem nome, ele leva ao campo e explica o que falta
+  function joinInvite(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    if (!valid) {
+      setError(t.needName);
+      nameInput.current?.focus();
+      return;
+    }
+    void run(() => joinRoom(inviteCode));
+  }
+
   async function run(fn: () => Promise<string | null>) {
     setBusy(true);
     setError(null);
@@ -48,68 +66,122 @@ export function Home() {
         <h1 className="sr-only">{t.appName}</h1>
         <p className="text-white/80">{t.tagline}</p>
       </div>
-      <div className="flex w-full max-w-sm flex-col gap-3">
-        <label className="text-sm text-white/80" htmlFor="name">
-          {t.yourName} <span className="text-white/75">({t.nameHint})</span>
-        </label>
-        <input
-          id="name"
-          className="min-h-[48px] rounded-xl bg-white px-4 text-lg text-black outline-none focus:ring-2 focus:ring-gold"
-          value={name}
-          maxLength={20}
-          autoComplete="nickname"
-          onChange={(e) => setNameInput(e.target.value)}
-        />
-        {!localOnly && (
-          <button className="btn-primary" disabled={!valid || busy} onClick={() => run(createRoom)}>
-            {t.createRoom}
-          </button>
-        )}
-        <div className="flex gap-2">
-          <button
-            className={localOnly ? 'btn-primary min-w-0 flex-1' : 'btn-ghost min-w-0 flex-1'}
-            disabled={!valid}
-            data-testid="play-local"
-            onClick={() => setError(startLocal(name, bots))}
-          >
-            {t.trainVsComputer}
-          </button>
-          <select
-            aria-label={t.opponents}
-            value={bots}
-            onChange={(e) => setBots(Number(e.target.value))}
-            className="rounded-xl bg-white/90 px-2 text-black"
-          >
-            <option value={1}>1 {t.opponent}</option>
-            <option value={2}>2 {t.opponents3}</option>
-            <option value={3}>3 ({t.partnerShort})</option>
-          </select>
-        </div>
-        {!localOnly && (
-          <div className="flex gap-2">
-            <input
-              aria-label={t.roomCode}
-              placeholder={t.roomCode}
-              className="min-h-[48px] min-w-0 flex-1 rounded-xl bg-white px-4 text-center text-lg uppercase tracking-widest text-black outline-none focus:ring-2 focus:ring-gold"
-              value={code}
-              maxLength={5}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-            />
-            <button
-              className="btn-ghost"
-              disabled={!valid || code.length < 5 || busy}
-              onClick={() => run(() => joinRoom(code))}
-            >
-              {t.join}
-            </button>
+      {invited ? (
+        <form className="flex w-full max-w-sm flex-col gap-3" onSubmit={joinInvite}>
+          <div className="rounded-2xl bg-black/30 p-3 text-center">
+            <p className="text-sm text-white/80">{t.invitedTitle}</p>
+            <p className="text-3xl font-black tracking-[0.3em] text-gold" data-testid="invite-code">
+              {inviteCode}
+            </p>
           </div>
-        )}
-        {error && (
-          <p role="alert" className="rounded-lg bg-red-600/80 px-3 py-2 text-sm">
-            {error}
-          </p>
-        )}
-      </div>
+          <label className="text-sm text-white/80" htmlFor="name">
+            {t.yourName} <span className="text-white/75">({t.nameHint})</span>
+          </label>
+          <input
+            id="name"
+            ref={nameInput}
+            className="min-h-[48px] rounded-xl bg-white px-4 text-lg text-black outline-none focus:ring-2 focus:ring-gold"
+            value={name}
+            maxLength={20}
+            autoComplete="nickname"
+            autoFocus={!identity}
+            enterKeyHint="go"
+            onChange={(e) => {
+              setNameInput(e.target.value);
+              setError(null);
+            }}
+          />
+          <button
+            className="btn-primary invite-pulse !min-h-[64px] w-full text-xl !font-black"
+            disabled={busy}
+            data-testid="join-invite"
+          >
+            ▶ {t.joinInvite}
+          </button>
+          {error && (
+            <p role="alert" className="rounded-lg bg-red-600/80 px-3 py-2 text-sm">
+              {error}
+            </p>
+          )}
+          <button
+            type="button"
+            className="min-h-[44px] text-sm text-white/80 underline"
+            onClick={() => {
+              setOtherOptions(true);
+              setError(null);
+            }}
+          >
+            {t.otherOptions}
+          </button>
+        </form>
+      ) : (
+        <div className="flex w-full max-w-sm flex-col gap-3">
+          <label className="text-sm text-white/80" htmlFor="name">
+            {t.yourName} <span className="text-white/75">({t.nameHint})</span>
+          </label>
+          <input
+            id="name"
+            className="min-h-[48px] rounded-xl bg-white px-4 text-lg text-black outline-none focus:ring-2 focus:ring-gold"
+            value={name}
+            maxLength={20}
+            autoComplete="nickname"
+            onChange={(e) => setNameInput(e.target.value)}
+          />
+          {!localOnly && (
+            <button
+              className="btn-primary"
+              disabled={!valid || busy}
+              onClick={() => run(createRoom)}
+            >
+              {t.createRoom}
+            </button>
+          )}
+          <div className="flex gap-2">
+            <button
+              className={localOnly ? 'btn-primary min-w-0 flex-1' : 'btn-ghost min-w-0 flex-1'}
+              disabled={!valid}
+              data-testid="play-local"
+              onClick={() => setError(startLocal(name, bots))}
+            >
+              {t.trainVsComputer}
+            </button>
+            <select
+              aria-label={t.opponents}
+              value={bots}
+              onChange={(e) => setBots(Number(e.target.value))}
+              className="rounded-xl bg-white/90 px-2 text-black"
+            >
+              <option value={1}>1 {t.opponent}</option>
+              <option value={2}>2 {t.opponents3}</option>
+              <option value={3}>3 ({t.partnerShort})</option>
+            </select>
+          </div>
+          {!localOnly && (
+            <div className="flex gap-2">
+              <input
+                aria-label={t.roomCode}
+                placeholder={t.roomCode}
+                className="min-h-[48px] min-w-0 flex-1 rounded-xl bg-white px-4 text-center text-lg uppercase tracking-widest text-black outline-none focus:ring-2 focus:ring-gold"
+                value={code}
+                maxLength={5}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+              />
+              <button
+                className="btn-ghost"
+                disabled={!valid || code.length < 5 || busy}
+                onClick={() => run(() => joinRoom(code))}
+              >
+                {t.join}
+              </button>
+            </div>
+          )}
+          {error && (
+            <p role="alert" className="rounded-lg bg-red-600/80 px-3 py-2 text-sm">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
       {!localOnly && (
         <div className="flex flex-wrap justify-center gap-2">
           <button className="btn-ghost" onClick={() => setPage('ranking')}>
