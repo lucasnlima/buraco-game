@@ -169,6 +169,36 @@ function VoiceTab() {
   );
 }
 
+/** Só durante a partida online: o lobby e o Treino já têm o botão de saída no topo. */
+function LeaveMatch() {
+  const code = useStore((s) => s.code);
+  const inMatch = useStore((s) => !!s.lobby && s.lobby.phase !== 'lobby');
+  const leaveRoom = useStore((s) => s.leaveRoom);
+  const [asking, setAsking] = useState(false);
+  if (!inMatch || !code || code === 'LOCAL') return null;
+  return (
+    <div className="sticky -bottom-4 -mx-1 border-t border-white/15 bg-felt-800 px-1 py-2">
+      {asking ? (
+        <div role="group" aria-label={t.leaveMatch}>
+          <p className="mb-2 text-center text-sm">{t.leaveConfirm(code)}</p>
+          <div className="flex gap-2">
+            <button type="button" className="btn-ghost flex-1" onClick={() => setAsking(false)}>
+              {t.cancel}
+            </button>
+            <button type="button" className="btn-danger flex-1" onClick={leaveRoom}>
+              {t.confirmLeave}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn-ghost w-full" onClick={() => setAsking(true)}>
+          <Icon name="exit" /> {t.leaveMatch}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function AvatarPicker() {
   const pick = useStore((s) => s.settings.avatar);
   const updateSettings = useStore((s) => s.updateSettings);
@@ -227,6 +257,7 @@ export function SettingsTab() {
           onChange={(e) => updateSettings({ haptics: e.target.checked })}
         />
       </label>
+      <LeaveMatch />
     </div>
   );
 }
