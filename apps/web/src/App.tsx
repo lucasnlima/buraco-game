@@ -11,8 +11,7 @@ export function App() {
   const { code, lobby, page, connected } = useStore();
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (!params.get('sala')) resumeLastRoom();
+    resumeLastRoom(new URLSearchParams(location.search).get('sala'));
   }, []);
 
   let body;

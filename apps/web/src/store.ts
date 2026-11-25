@@ -285,10 +285,14 @@ export const useStore = create<State>()((set, get) => {
   };
 });
 
-/** Reentra na última sala após recarregar a página / reabrir o app. */
-export function resumeLastRoom(): void {
+/**
+ * Reentra na última sala após recarregar a página / reabrir o app. Se a página veio de um
+ * link de convite, só reentra quando o convite é dessa mesma sala; de outra, mostra o convite.
+ */
+export function resumeLastRoom(invite?: string | null): void {
   try {
     const code = localStorage.getItem(LAST_ROOM);
+    if (invite && invite.trim().toUpperCase() !== code) return;
     if (code && useStore.getState().identity) void useStore.getState().joinRoom(code);
   } catch {
     /* ignore */
