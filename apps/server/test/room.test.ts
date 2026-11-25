@@ -72,6 +72,20 @@ function playOut(h: ReturnType<typeof harness>, limit = 2000) {
 }
 
 describe('lobby', () => {
+  it('avatar escolhido vai para o lobby, pode mudar e voltar ao automático', () => {
+    const h = harness();
+    const a = h.join('Ana').c;
+    const b = h.join('Bruno').c;
+    const avatarOfAna = () => b.last('lobby')!.players.find((p) => p.id === a.id)!.avatar;
+    expect(avatarOfAna()).toBeUndefined();
+    h.send(a, { t: 'avatar', avatar: 13 });
+    expect(avatarOfAna()).toBe(13);
+    h.room.join(a.id, a.name, 4); // reconexão manda a escolha atual
+    expect(avatarOfAna()).toBe(4);
+    h.send(a, { t: 'avatar', avatar: null });
+    expect(avatarOfAna()).toBeUndefined();
+  });
+
   it('primeiro a entrar é anfitrião; máx. 4; lugares únicos', () => {
     const h = harness();
     const a = h.join('Ana').c;

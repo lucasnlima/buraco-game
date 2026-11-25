@@ -103,7 +103,7 @@ function onSocket(ws: WebSocket, code: string): void {
       for (const old of sockets.get(p.id) ?? []) old.close(4000, 'replaced');
       sockets.set(p.id, new Set([ws]));
       pid = p.id;
-      const r = room.join(p.id, p.name);
+      const r = room.join(p.id, p.name, hello.data!.avatar);
       if (!r.ok) {
         ws.send(JSON.stringify({ t: 'error', code: r.code, message: r.message }));
         pid = null;

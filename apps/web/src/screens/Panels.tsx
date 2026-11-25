@@ -1,4 +1,4 @@
-import { REACTIONS } from '@buraco/protocol';
+import { AVATAR_COUNT, REACTIONS } from '@buraco/protocol';
 import { useEffect, useRef, useState } from 'react';
 import { Avatar, Icon, Modal } from '../components';
 import { t } from '../i18n';
@@ -151,7 +151,7 @@ function VoiceTab() {
       {others.length === 0 && <p className="text-sm text-white/75">—</p>}
       {others.map((p) => (
         <div key={p.id} className="flex items-center gap-3">
-          <Avatar name={p.name} size={36} speaking={!!v.speaking[p.id]} />
+          <Avatar name={p.name} pick={p.avatar} size={36} speaking={!!v.speaking[p.id]} />
           <span className="w-24 truncate">{p.name}</span>
           <input
             type="range"
@@ -169,10 +169,46 @@ function VoiceTab() {
   );
 }
 
-function SettingsTab() {
+function AvatarPicker() {
+  const pick = useStore((s) => s.settings.avatar);
+  const updateSettings = useStore((s) => s.updateSettings);
+  const options = Array.from({ length: AVATAR_COUNT }, (_, i) => i + 1);
+  const ring = (on: boolean) => (on ? 'bg-gold/25 ring-2 ring-gold' : 'bg-black/20');
+  return (
+    <fieldset>
+      <legend className="mb-2">{t.myAvatar}</legend>
+      <div className="grid grid-cols-5 justify-items-center gap-2" role="radiogroup">
+        {options.map((n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={pick === n}
+            aria-label={t.avatarOption(n)}
+            className={`rounded-full p-0.5 ${ring(pick === n)}`}
+            onClick={() => updateSettings({ avatar: n })}
+          >
+            <Avatar name="" pick={n} size={52} />
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        aria-pressed={pick === null}
+        className={`mt-2 min-h-[44px] w-full rounded-xl text-sm ${ring(pick === null)}`}
+        onClick={() => updateSettings({ avatar: null })}
+      >
+        {t.avatarAuto}
+      </button>
+    </fieldset>
+  );
+}
+
+export function SettingsTab() {
   const { settings, updateSettings } = useStore();
   return (
     <div className="space-y-2">
+      <AvatarPicker />
       <label className="flex min-h-[44px] items-center justify-between">
         <span>{t.fourColors}</span>
         <input

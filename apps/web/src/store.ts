@@ -1,5 +1,5 @@
 import type { PlayerView } from '@buraco/engine';
-import type { ClientMsg, MatchSummary, ServerMsg } from '@buraco/protocol';
+import { type ClientMsg, type MatchSummary, type ServerMsg, avatarSchema } from '@buraco/protocol';
 import { create } from 'zustand';
 import { t } from './i18n';
 import { startLocalGame } from './local';
@@ -23,18 +23,20 @@ interface Settings {
   fourColors: boolean;
   haptics: boolean;
   sort: 'suit' | 'rank';
+  /** null = automático (pelo nome) */
+  avatar: number | null;
 }
 const SETTINGS_KEY = 'buraco.settings';
+const DEFAULTS: Settings = { fourColors: false, haptics: true, sort: 'suit', avatar: null };
 const loadSettings = (): Settings => {
   try {
-    return {
-      fourColors: false,
-      haptics: true,
-      sort: 'suit',
+    const s: Settings = {
+      ...DEFAULTS,
       ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}'),
     };
+    return { ...s, avatar: avatarSchema.safeParse(s.avatar).data ?? null };
   } catch {
-    return { fourColors: false, haptics: true, sort: 'suit' };
+    return DEFAULTS;
   }
 };
 
@@ -88,7 +90,8 @@ export const useStore = create<State>()((set, get) => {
     ws = sock;
     sock.onopen = () => {
       retry = 0;
-      sock.send(JSON.stringify({ t: 'hello', name: id.name, token: id.token }));
+      const avatar = get().settings.avatar ?? undefined;
+      sock.send(JSON.stringify({ t: 'hello', name: id.name, token: id.token, avatar }));
       clearInterval(pingTimer);
       pingTimer = setInterval(
         () => sock.readyState === 1 && sock.send(JSON.stringify({ t: 'ping' })),
@@ -226,7 +229,8 @@ export const useStore = create<State>()((set, get) => {
         game: null,
         lobby: null,
       });
-      local = startLocalGame({ name: clean, bots, deliver: handle });
+      const avatar = get().settings.avatar ?? undefined;
+      local = startLocalGame({ name: clean, avatar, bots, deliver: handle });
       return null;
     },
 
@@ -269,6 +273,8 @@ export const useStore = create<State>()((set, get) => {
     updateSettings(s) {
       const settings = { ...get().settings, ...s };
       set({ settings });
+      // dentro de uma sala, avisa os outros na hora
+      if (s.avatar !== undefined && get().lobby) get().send({ t: 'avatar', avatar: s.avatar });
       try {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       } catch {

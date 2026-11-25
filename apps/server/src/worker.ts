@@ -164,7 +164,7 @@ export class RoomDO implements DurableObject {
         old.close(4000, 'replaced');
       }
       ws.serializeAttachment({ playerId: p.id } satisfies Attachment);
-      const res = room.join(p.id, p.name);
+      const res = room.join(p.id, p.name, hello.data.avatar);
       if (!res.ok) {
         ws.send(JSON.stringify({ t: 'error', code: res.code, message: res.message }));
         ws.serializeAttachment({ playerId: null });

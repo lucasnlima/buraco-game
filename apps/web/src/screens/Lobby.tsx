@@ -72,7 +72,7 @@ export function Lobby() {
               aria-label={`${t.seat} ${s + 1}`}
             >
               {p ? (
-                <Avatar name={p.name} />
+                <Avatar name={p.name} pick={p.avatar} />
               ) : (
                 <div className="h-11 w-11 rounded-full bg-white/10" />
               )}

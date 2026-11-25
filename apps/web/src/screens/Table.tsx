@@ -259,6 +259,7 @@ export function Table() {
         side={side}
         small={compact}
         name={names[i] ?? '?'}
+        avatar={pl?.avatar}
         cards={view.handCounts[i] ?? 0}
         partner={n === 4 && teamOf(n, i) === view.yourTeam}
         isTurn={view.turn === i && view.status === 'playing'}
@@ -520,6 +521,7 @@ export function Table() {
         >
           <Avatar
             name={names[me] ?? '?'}
+            pick={lobby.players.find((p) => p.id === lobby.order[me])?.avatar}
             size={compact ? 28 : 46}
             speaking={!!speaking[myId ?? '']}
           />
@@ -697,6 +699,7 @@ function OpponentSeat({
   side,
   small,
   name,
+  avatar,
   cards,
   partner,
   isTurn,
@@ -708,6 +711,7 @@ function OpponentSeat({
   side: SeatSide;
   small: boolean;
   name: string;
+  avatar: number | undefined;
   cards: number;
   partner: boolean;
   isTurn: boolean;
@@ -728,7 +732,7 @@ function OpponentSeat({
       data-testid={`opp-${index}`}
     >
       <div className="flex w-[60px] min-w-0 flex-col items-center leading-tight">
-        <Avatar name={name} size={small ? 30 : 46} speaking={speaking} />
+        <Avatar name={name} pick={avatar} size={small ? 30 : 46} speaking={speaking} />
         <div className="max-w-full truncate text-[11px] font-semibold">{name}</div>
         {partner && <div className="text-[10px] text-gold">({t.partner})</div>}
       </div>

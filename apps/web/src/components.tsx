@@ -234,16 +234,19 @@ export function Modal({
 
 export function Avatar({
   name,
+  pick,
   size = 44,
   speaking = false,
 }: {
   name: string;
+  /** avatar escolhido (1..AVATAR_COUNT); vazio = automático pelo nome */
+  pick?: number | null;
   size?: number;
   speaking?: boolean;
 }) {
   return (
     <img
-      src={avatarUrl(name)}
+      src={avatarUrl(name, pick)}
       alt=""
       draggable={false}
       width={size}

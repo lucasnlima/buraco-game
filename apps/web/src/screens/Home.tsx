@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { assetUrl } from '../assets';
-import { Icon } from '../components';
+import { Icon, Modal } from '../components';
 import { t } from '../i18n';
 import { useStore } from '../store';
+import { SettingsTab } from './Panels';
 
 export function Home() {
   const { identity, setName, createRoom, joinRoom, setPage, startLocal } = useStore();
@@ -12,6 +13,12 @@ export function Home() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsButton = (
+    <button className="btn-ghost" onClick={() => setShowSettings(true)}>
+      <Icon name="settings" /> {t.settings}
+    </button>
+  );
 
   const invite = new URLSearchParams(location.search).get('sala');
   useEffect(() => {
@@ -104,7 +111,7 @@ export function Home() {
         )}
       </div>
       {!localOnly && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           <button className="btn-ghost" onClick={() => setPage('ranking')}>
             <Icon name="trophy" /> {t.ranking}
           </button>
@@ -116,14 +123,23 @@ export function Home() {
           <button className="btn-ghost" onClick={() => setPage('howto')}>
             <Icon name="rules-book" /> {t.howTo}
           </button>
+          {settingsButton}
         </div>
       )}
       {localOnly && (
-        <button className="btn-ghost" onClick={() => setPage('howto')}>
-          <Icon name="rules-book" /> {t.howTo}
-        </button>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button className="btn-ghost" onClick={() => setPage('howto')}>
+            <Icon name="rules-book" /> {t.howTo}
+          </button>
+          {settingsButton}
+        </div>
       )}
       <p className="max-w-xs text-center text-xs text-white/75">{t.installHint}</p>
+      {showSettings && (
+        <Modal title={t.settings} onClose={() => setShowSettings(false)}>
+          <SettingsTab />
+        </Modal>
+      )}
     </div>
   );
 }

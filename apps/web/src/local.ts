@@ -67,6 +67,7 @@ function usefulness(c: Card, hand: Card[], melds: Meld[], cfg: PlayerView['confi
 
 export function startLocalGame(opts: {
   name: string;
+  avatar?: number;
   bots: number;
   deliver: (m: ServerMsg) => void;
 }) {
@@ -166,7 +167,7 @@ export function startLocalGame(opts: {
   }
 
   // Monta a sala: humano (anfitrião, lugar 1) + bots; inicia direto.
-  room.join(HUMAN, opts.name);
+  room.join(HUMAN, opts.name, opts.avatar);
   for (const b of bots) room.join(b.id, b.name);
   room.handle(HUMAN, { t: 'start' });
 

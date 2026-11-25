@@ -30,6 +30,8 @@ export interface PlayerRec {
   /** null = conectado */
   disconnectedAt: number | null;
   voice: boolean;
+  /** avatar escolhido; ausente = automático */
+  avatar?: number;
   /** o anfitrião escolheu esperar este jogador */
   waiting: boolean;
 }
@@ -98,12 +100,17 @@ export class Room {
   }
 
   // ───────── entrada/saída ─────────
-  join(id: string, name: string): { ok: true } | { ok: false; code: string; message: string } {
+  join(
+    id: string,
+    name: string,
+    avatar?: number,
+  ): { ok: true } | { ok: false; code: string; message: string } {
     const existing = this.player(id);
     if (existing) {
       existing.disconnectedAt = null;
       existing.waiting = false;
       existing.name = name;
+      existing.avatar = avatar;
       if (this.s.pendingDecision === id) this.s.pendingDecision = null;
     } else {
       if (this.s.phase !== 'lobby') {
@@ -113,7 +120,15 @@ export class Room {
         return { ok: false, code: 'ROOM_FULL', message: 'Sala cheia (máximo 4).' };
       const taken = new Set(this.s.players.map((p) => p.seat));
       const seat = [0, 1, 2, 3].find((x) => !taken.has(x))!;
-      this.s.players.push({ id, name, seat, disconnectedAt: null, voice: false, waiting: false });
+      this.s.players.push({
+        id,
+        name,
+        avatar,
+        seat,
+        disconnectedAt: null,
+        voice: false,
+        waiting: false,
+      });
       if (!this.s.hostId) this.s.hostId = id;
     }
     this.deps.send(id, { t: 'welcome', you: id, code: this.s.code, v: PROTOCOL_VERSION });
@@ -235,6 +250,9 @@ export class Room {
         return this.broadcast({ t: 'react', from: id, emoji: msg.emoji });
       case 'voice':
         me.voice = msg.on;
+        return this.broadcastLobby();
+      case 'avatar':
+        me.avatar = msg.avatar ?? undefined;
         return this.broadcastLobby();
       case 'rtc': {
         const to = this.player(msg.to);
@@ -370,6 +388,7 @@ export class Room {
       seat: p.seat,
       connected: p.disconnectedAt === null,
       voice: p.voice,
+      avatar: p.avatar,
     }));
     this.broadcast({
       t: 'lobby',

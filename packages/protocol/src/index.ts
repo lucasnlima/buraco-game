@@ -8,6 +8,9 @@ export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const ROOM_CODE_LENGTH = 5;
 export const REACTIONS = ['👏', '😂', '😮', '😡', '🔥', '👍', '🙈', '💀'] as const;
 export const SEAT_HOLD_MS = 120_000;
+/** Avatares disponíveis no app: 1..AVATAR_COUNT. */
+export const AVATAR_COUNT = 25;
+export const avatarSchema = z.number().int().min(1).max(AVATAR_COUNT);
 
 export const nameSchema = z
   .string()
@@ -63,6 +66,8 @@ export const helloSchema = z.object({
   t: z.literal('hello'),
   name: nameSchema,
   token: tokenSchema,
+  /** ausente = automático (pelo nome). Valor inválido é ignorado, não impede a entrada. */
+  avatar: avatarSchema.optional().catch(undefined),
 });
 export type Hello = z.infer<typeof helloSchema>;
 
@@ -77,6 +82,7 @@ export const clientMsgSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('chat'), text: z.string().trim().min(1).max(200) }),
   z.object({ t: z.literal('react'), emoji: z.enum(REACTIONS) }),
   z.object({ t: z.literal('voice'), on: z.boolean() }),
+  z.object({ t: z.literal('avatar'), avatar: avatarSchema.nullable() }),
   z.object({
     t: z.literal('rtc'),
     to: z.string().max(64),
@@ -96,6 +102,7 @@ export interface LobbyPlayer {
   seat: number;
   connected: boolean;
   voice: boolean;
+  avatar?: number;
 }
 
 export interface MatchSummary {

@@ -1,4 +1,5 @@
 import type { Card } from '@buraco/engine';
+import { AVATAR_COUNT } from '@buraco/protocol';
 import { cardCode } from '@buraco/engine';
 import { assetUrl } from './assets';
 
@@ -13,7 +14,6 @@ export const theme = {
   basePath: '/assets',
   /** verso padrão: 'back' | 'back-blue' | 'back-wine' */
   back: 'back' as BackName,
-  avatarCount: 13,
 };
 
 /** Cartas que têm arte pronta (figuras e coringas). */
@@ -33,11 +33,11 @@ export const backImageUrl = (back: BackName = theme.back): string | null =>
 /** Mesa com dois baralhos: alterna os versos. Só visual — não revela qual carta é. */
 export const deckBack = (i: number): BackName => (i % 2 === 0 ? 'back-blue' : 'back-wine');
 
-export const avatarUrl = (name: string): string => {
+/** Avatar escolhido pelo jogador; sem escolha, um fixo calculado a partir do nome. */
+export const avatarUrl = (name: string, pick?: number | null): string => {
   const h = [...name].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
-  return assetUrl(
-    `${theme.basePath}/avatars/${String((h % theme.avatarCount) + 1).padStart(2, '0')}.webp`,
-  );
+  const n = pick ?? (h % AVATAR_COUNT) + 1;
+  return assetUrl(`${theme.basePath}/avatars/${String(n).padStart(2, '0')}.webp`);
 };
 
 export const iconUrl = (name: string): string => assetUrl(`${theme.basePath}/icons/${name}.svg`);
