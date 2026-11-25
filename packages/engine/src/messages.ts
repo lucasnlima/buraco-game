@@ -6,6 +6,7 @@ export const ERROR_MESSAGES = {
   ALREADY_DREW: 'Você já comprou nesta vez.',
   STOCK_EMPTY: 'O monte acabou.',
   DISCARD_EMPTY: 'O lixo está vazio.',
+  DISCARD_TAKEN_CARD: 'O lixo tinha só essa carta: ela não pode ser descartada nesta vez.',
   CARDS_NOT_IN_HAND: 'Essas cartas não estão na sua mão.',
   INVALID_MELD:
     'Isso não forma uma sequência válida (mínimo 3 cartas do mesmo naipe, em ordem, com no máximo 1 curinga).',

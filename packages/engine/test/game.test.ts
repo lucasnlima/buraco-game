@@ -87,6 +87,49 @@ describe('fluxo de turno', () => {
     expect(s.hands[0]).toHaveLength(6);
     expect(s.discard).toHaveLength(0);
   });
+  it('a única carta do lixo não pode ser descartada na mesma vez', () => {
+    const { st } = setup({ hands: { 0: '3H 9S', 1: 'KS KS' }, discard: '7D' });
+    const taken = st.discard[0]!;
+    const s = ok(applyAction(st, 0, { type: 'TAKE_DISCARD' }));
+    expect(applyAction(s, 0, { type: 'DISCARD', cardId: taken.id })).toMatchObject({
+      code: 'DISCARD_TAKEN_CARD',
+    });
+    const next = ok(applyAction(s, 0, { type: 'DISCARD', cardId: st.hands[0]![0]!.id }));
+    expect(next.turn).toBe(1);
+    // o bloqueio vale só naquela vez
+    expect(next.turnInfo.lockedCardId).toBeNull();
+  });
+  it('com duas ou mais cartas no lixo, qualquer uma pode ser descartada', () => {
+    const { st } = setup({ hands: { 0: '3H 9S' }, discard: '7D 8C' });
+    const top = st.discard[1]!;
+    const s = ok(applyAction(st, 0, { type: 'TAKE_DISCARD' }));
+    expect(applyAction(s, 0, { type: 'DISCARD', cardId: top.id }).ok).toBe(true);
+  });
+  it('não deixa baixar ficando só com a carta única do lixo, se ela não tem onde entrar', () => {
+    const { st } = setup({ hands: { 0: '3H 4H 5H' }, discard: 'KD' });
+    const s = ok(applyAction(st, 0, { type: 'TAKE_DISCARD' }));
+    const hearts = s.hands[0]!.filter((c) => c.suit === 'H');
+    expect(applyAction(s, 0, { type: 'MELD', cardIds: ids(hearts) })).toMatchObject({
+      code: 'DISCARD_TAKEN_CARD',
+    });
+  });
+  it('deixa ficar só com a carta do lixo quando ela entra num jogo', () => {
+    const { st } = setup({ hands: { 0: '3H 4H 5H' }, discard: '6H' });
+    const taken = st.discard[0]!;
+    let s = ok(applyAction(st, 0, { type: 'TAKE_DISCARD' }));
+    const three = s.hands[0]!.filter((c) => c.id !== taken.id);
+    s = ok(applyAction(s, 0, { type: 'MELD', cardIds: ids(three) }));
+    s = ok(applyAction(s, 0, { type: 'ADD_TO_MELD', meldId: 1, cardIds: [taken.id] }));
+    expect(s.deadTaken[0]).toBe(true);
+  });
+  it('estouro do tempo descarta outra carta, não a única do lixo', () => {
+    const { st } = setup({ hands: { 0: '3H 9S' }, discard: '7D' });
+    const taken = st.discard[0]!;
+    const s = ok(applyAction(st, 0, { type: 'TAKE_DISCARD' }));
+    const r = ok(applyTimeout(s));
+    expect(r.turn).toBe(1);
+    expect(r.discard[0]!.id).not.toBe(taken.id);
+  });
   it('lixo vazio não pode ser pego', () => {
     const { st } = setup({ hands: { 0: '3H 9S' } });
     expect(applyAction(st, 0, { type: 'TAKE_DISCARD' })).toMatchObject({ code: 'DISCARD_EMPTY' });

@@ -35,7 +35,8 @@ export function HowTo() {
       <Item h="Sua vez em 3 passos">
         <p>
           <b>1. Comprar</b> — toque no monte (1 carta) ou no lixo (pega o lixo inteiro; no Aberto
-          não precisa usar nada na hora).
+          não precisa usar nada na hora). Se o lixo tinha só uma carta, ela não pode ser descartada
+          na mesma vez.
         </p>
         <p>
           <b>2. Baixar</b> (opcional) — selecione 3+ cartas e toque em “Baixar”. Para adicionar a um

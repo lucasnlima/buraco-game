@@ -12,6 +12,8 @@ export interface TurnInfo {
   drawnFrom: 'stock' | 'discard' | null;
   /** Carta comprada do monte nesta vez (para recusa / timer). */
   drawnCardId: number | null;
+  /** Única carta que havia no lixo: não pode ser descartada na mesma vez. */
+  lockedCardId: number | null;
   melded: boolean;
   refused: boolean;
 }
@@ -81,7 +83,7 @@ export function dealHand(
     deadTaken: deads.map(() => false),
     melds: [],
     nextMeldId: 1,
-    turnInfo: { drawnFrom: null, drawnCardId: null, melded: false, refused: false },
+    turnInfo: newTurnInfo(),
     firstTurnPending: true,
     status: 'playing',
     result: null,
@@ -91,6 +93,7 @@ export function dealHand(
 const newTurnInfo = (): TurnInfo => ({
   drawnFrom: null,
   drawnCardId: null,
+  lockedCardId: null,
   melded: false,
   refused: false,
 });
@@ -180,6 +183,12 @@ function afterMeld(st: HandState, player: number): ActionResult | null {
     endHand(st, 'out', player);
     return null;
   }
+  if (hand.length === 1 && hand[0]!.id === st.turnInfo.lockedCardId) {
+    // Só sobrou a carta que não pode ser descartada: ela precisa ter lugar num jogo.
+    const fits = teamMelds(st, team).some((m) => resolveAddition(m, hand, st.config));
+    const canEmpty = st.deads[team] !== null || goOutCheck(st, team, 'meld').ok;
+    return fits && canEmpty ? null : fail('DISCARD_TAKEN_CARD');
+  }
   if (hand.length === 1 && st.deads[team] === null) {
     // A última carta teria de ser descartada para bater: precisa ser possível.
     const chk = goOutCheck(st, team, 'discard');
@@ -212,10 +221,11 @@ export function applyAction(state: HandState, player: number, action: Action): A
     case 'TAKE_DISCARD': {
       if (st.phase !== 'draw') return fail('ALREADY_DREW');
       if (st.discard.length === 0) return fail('DISCARD_EMPTY');
+      const only = st.discard.length === 1 ? st.discard[0]!.id : null;
       hand.push(...st.discard);
       st.discard = [];
       st.phase = 'play';
-      st.turnInfo = { ...newTurnInfo(), drawnFrom: 'discard' };
+      st.turnInfo = { ...newTurnInfo(), drawnFrom: 'discard', lockedCardId: only };
       return { ok: true, state: st };
     }
     case 'REJECT_DRAW': {
@@ -270,6 +280,7 @@ export function applyAction(state: HandState, player: number, action: Action): A
       if (st.phase !== 'play') return fail('MUST_DRAW');
       const card = hand.find((c) => c.id === action.cardId);
       if (!card) return fail('CARDS_NOT_IN_HAND');
+      if (card.id === st.turnInfo.lockedCardId) return fail('DISCARD_TAKEN_CARD');
       st.hands[player] = removeFromHand(hand, [card.id]);
       st.discard.push(card);
       if (st.hands[player]!.length === 0) {
@@ -312,8 +323,10 @@ export function applyTimeout(state: HandState): ActionResult {
     st = r.state;
   }
   const hand = st.hands[st.turn]!;
-  const id = st.turnInfo.drawnCardId ?? hand[hand.length - 1]!.id;
-  const cardId = hand.some((c) => c.id === id) ? id : hand[hand.length - 1]!.id;
+  const allowed = hand.filter((c) => c.id !== st.turnInfo.lockedCardId);
+  const fallback = (allowed[allowed.length - 1] ?? hand[hand.length - 1]!).id;
+  const id = st.turnInfo.drawnCardId;
+  const cardId = id !== null && allowed.some((c) => c.id === id) ? id : fallback;
   return applyAction(st, st.turn, { type: 'DISCARD', cardId });
 }
 
