@@ -2,6 +2,7 @@ import type { PlayerView } from '@buraco/engine';
 import type { ClientMsg, MatchSummary, ServerMsg } from '@buraco/protocol';
 import { create } from 'zustand';
 import { t } from './i18n';
+import { startLocalGame } from './local';
 import { type Identity, api, loadIdentity, newToken, saveIdentity, wsUrl } from './net';
 
 type Lobby = Extract<ServerMsg, { t: 'lobby' }>;
@@ -56,6 +57,7 @@ interface State {
   createRoom: () => Promise<string | null>;
   joinRoom: (code: string) => Promise<string | null>;
   leaveRoom: () => void;
+  startLocal: (name: string, bots: number) => string | null;
   send: (m: ClientMsg) => void;
   say: (msg: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
@@ -71,6 +73,7 @@ let toastTimer: ReturnType<typeof setTimeout> | undefined;
 let pingTimer: ReturnType<typeof setInterval> | undefined;
 let reactionKey = 0;
 let intentionalClose = false;
+let local: ReturnType<typeof startLocalGame> | null = null;
 
 const LAST_ROOM = 'buraco.lastRoom';
 
@@ -115,6 +118,7 @@ export const useStore = create<State>()((set, get) => {
     switch (m.t) {
       case 'welcome':
         set({ myId: m.you, connected: true, code: m.code });
+        if (m.code === 'LOCAL') break;
         try {
           localStorage.setItem(LAST_ROOM, m.code);
         } catch {
@@ -207,7 +211,28 @@ export const useStore = create<State>()((set, get) => {
       return null;
     },
 
+    startLocal(name, bots) {
+      const clean = name.trim();
+      if (clean.length < 2 || clean.length > 20) return 'Use de 2 a 20 caracteres.';
+      const identity: Identity = { name: clean, token: get().identity?.token ?? newToken() };
+      saveIdentity(identity);
+      local?.stop();
+      set({
+        identity,
+        code: 'LOCAL',
+        myId: 'you',
+        connected: true,
+        chat: [],
+        game: null,
+        lobby: null,
+      });
+      local = startLocalGame({ name: clean, bots, deliver: handle });
+      return null;
+    },
+
     leaveRoom() {
+      local?.stop();
+      local = null;
       intentionalClose = true;
       clearTimeout(retryTimer);
       clearInterval(pingTimer);
@@ -231,6 +256,7 @@ export const useStore = create<State>()((set, get) => {
     },
 
     send(m) {
+      if (local) return local.send(m);
       if (ws?.readyState === 1) ws.send(JSON.stringify(m));
     },
 

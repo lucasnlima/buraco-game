@@ -55,7 +55,7 @@ export function Table() {
   const speaking = useVoice((s) => s.speaking);
   const compact = useCompact();
   const [sel, setSel] = useState<number[]>([]);
-  const [panel, setPanel] = useState<null | 'chat' | 'voice'>(null);
+  const [panel, setPanel] = useState<null | 'chat' | 'voice' | 'settings'>(null);
   const [showScore, setShowScore] = useState(false);
   const [showDiscard, setShowDiscard] = useState(false);
   const [wildChoice, setWildChoice] = useState<number[] | null>(null);
@@ -253,7 +253,7 @@ export function Table() {
                 : t.turnOf(names[view.turn] ?? '')}
           </div>
           <div className="text-white/75">
-            {t.hand} {match.handNumber} · {lobby.code}
+            {t.hand} {match.handNumber} · {lobby.code === 'LOCAL' ? 'Treino' : lobby.code}
             {countdown !== null && (
               <span className={countdown <= 10 ? ' font-bold text-red-300' : ''}>
                 {' '}
@@ -263,25 +263,46 @@ export function Table() {
           </div>
         </div>
         <div className="flex gap-1">
-          <button
-            className="btn-ghost relative !min-h-[44px] !min-w-[44px] !px-2"
-            onClick={() => setPanel('chat')}
-            aria-label={t.chat}
-          >
-            <Icon name="chat" size={22} />
-            {unread > 0 && (
-              <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[10px]">
-                {unread}
-              </span>
-            )}
-          </button>
-          <button
-            className="btn-ghost !min-h-[44px] !min-w-[44px] !px-2"
-            onClick={() => setPanel('voice')}
-            aria-label={t.voice}
-          >
-            <Icon name="headphones" size={22} />
-          </button>
+          {lobby.code === 'LOCAL' ? (
+            <>
+              <button
+                className="btn-ghost !min-h-[44px] !min-w-[44px] !px-2"
+                onClick={() => setPanel('settings')}
+                aria-label={t.settings}
+              >
+                <Icon name="settings" size={22} />
+              </button>
+              <button
+                className="btn-ghost !min-h-[44px] !min-w-[44px] !px-2"
+                onClick={leaveRoom}
+                aria-label={t.leave}
+              >
+                <Icon name="exit" size={22} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="btn-ghost relative !min-h-[44px] !min-w-[44px] !px-2"
+                onClick={() => setPanel('chat')}
+                aria-label={t.chat}
+              >
+                <Icon name="chat" size={22} />
+                {unread > 0 && (
+                  <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1 text-[10px]">
+                    {unread}
+                  </span>
+                )}
+              </button>
+              <button
+                className="btn-ghost !min-h-[44px] !min-w-[44px] !px-2"
+                onClick={() => setPanel('voice')}
+                aria-label={t.voice}
+              >
+                <Icon name="headphones" size={22} />
+              </button>
+            </>
+          )}
         </div>
       </header>
 

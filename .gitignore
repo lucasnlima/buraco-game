@@ -10,3 +10,5 @@ coverage/
 .DS_Store
 playwright-report/
 test-results/
+apps/web/src/_inline/
+apps/web/dist-artifact/

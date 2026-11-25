@@ -21,7 +21,7 @@ import {
   SEAT_HOLD_MS,
   type ServerMsg,
 } from '@buraco/protocol';
-import type { Store } from './store';
+import type { Store } from './store-core';
 
 export interface PlayerRec {
   id: string;

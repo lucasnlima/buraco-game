@@ -10,6 +10,7 @@ type Tab = 'chat' | 'voice' | 'settings';
 export function Panels({ onClose, initial = 'chat' }: { onClose: () => void; initial?: Tab }) {
   const [tab, setTab] = useState<Tab>(initial);
   const clearUnread = useStore((s) => s.clearUnread);
+  const isLocal = useStore((s) => s.code === 'LOCAL');
   useEffect(() => {
     if (tab === 'chat') clearUnread();
   }, [tab, clearUnread]);
@@ -20,7 +21,7 @@ export function Panels({ onClose, initial = 'chat' }: { onClose: () => void; ini
       title={t[tab === 'chat' ? 'chat' : tab === 'voice' ? 'voice' : 'settings']}
     >
       <div className="mb-3 flex gap-2" role="tablist">
-        {(['chat', 'voice', 'settings'] as const).map((k) => (
+        {(isLocal ? (['settings'] as const) : (['chat', 'voice', 'settings'] as const)).map((k) => (
           <button
             key={k}
             role="tab"

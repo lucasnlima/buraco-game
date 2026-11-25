@@ -1,5 +1,6 @@
 import type { Card } from '@buraco/engine';
 import { cardCode } from '@buraco/engine';
+import { assetUrl } from './assets';
 
 /**
  * Tema visual. Imagens ficam em `public/assets/` (veja public/assets/README.md).
@@ -22,22 +23,24 @@ export function cardImageUrl(c: Card): string | null {
   if (!theme.useImages) return null;
   let code = cardCode(c);
   if (c.rank === 0) code = `JK${((c.id - 104) % 2) + 1}`; // 4 coringas reutilizam 2 artes
-  return IMAGE_CARDS.has(code) ? `${theme.basePath}/cards/${code}.webp` : null;
+  return IMAGE_CARDS.has(code) ? assetUrl(`${theme.basePath}/cards/${code}.webp`) : null;
 }
 export const backImageUrl = (): string | null =>
-  theme.useImages ? `${theme.basePath}/cards/${theme.back}.webp` : null;
+  theme.useImages ? assetUrl(`${theme.basePath}/cards/${theme.back}.webp`) : null;
 
 export const avatarUrl = (name: string): string => {
   const h = [...name].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
-  return `${theme.basePath}/avatars/${String((h % theme.avatarCount) + 1).padStart(2, '0')}.webp`;
+  return assetUrl(
+    `${theme.basePath}/avatars/${String((h % theme.avatarCount) + 1).padStart(2, '0')}.webp`,
+  );
 };
 
-export const iconUrl = (name: string): string => `${theme.basePath}/icons/${name}.svg`;
-export const badgeUrl = (name: string): string => `${theme.basePath}/badges/${name}.webp`;
+export const iconUrl = (name: string): string => assetUrl(`${theme.basePath}/icons/${name}.svg`);
+export const badgeUrl = (name: string): string => assetUrl(`${theme.basePath}/badges/${name}.webp`);
 
 const SUIT_FILE = { S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' } as const;
 export const suitUrl = (suit: keyof typeof SUIT_FILE, fourColors: boolean): string =>
-  `${theme.basePath}/suits/${fourColors ? '4-color/' : ''}${SUIT_FILE[suit]}.svg`;
+  assetUrl(`${theme.basePath}/suits/${fourColors ? '4-color/' : ''}${SUIT_FILE[suit]}.svg`);
 
 export const SUIT_COLOR_2 = { S: '#14181c', C: '#14181c', H: '#c62828', D: '#c62828' } as const;
 /** Modo 4 cores: cada naipe tem cor própria. */
