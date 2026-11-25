@@ -1,0 +1,11 @@
+{
+  "buildCommand": "pnpm --filter @buraco/web build",
+  "outputDirectory": "apps/web/dist",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "rewrites": [
+    {
+      "source": "/((?!assets|icons|sw.js|workbox-.*|manifest.webmanifest).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

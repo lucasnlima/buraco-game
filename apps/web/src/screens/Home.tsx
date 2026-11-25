@@ -1,0 +1,88 @@
+import { useEffect, useState } from 'react';
+import { t } from '../i18n';
+import { useStore } from '../store';
+
+export function Home() {
+  const { identity, setName, createRoom, joinRoom, setPage } = useStore();
+  const [name, setNameInput] = useState(identity?.name ?? '');
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const invite = new URLSearchParams(location.search).get('sala');
+  useEffect(() => {
+    if (invite) setCode(invite.toUpperCase().slice(0, 5));
+  }, [invite]);
+
+  const valid = name.trim().length >= 2 && name.trim().length <= 20;
+
+  async function run(fn: () => Promise<string | null>) {
+    setBusy(true);
+    setError(null);
+    const err = await setName(name).then((e) => e ?? fn());
+    setBusy(false);
+    if (err) setError(err);
+  }
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-5 px-5 pb-8">
+      <div className="text-center">
+        <div className="mb-1 text-5xl">🂡</div>
+        <h1 className="text-3xl font-extrabold">{t.appName}</h1>
+        <p className="text-white/70">{t.tagline}</p>
+      </div>
+      <div className="flex w-full max-w-sm flex-col gap-3">
+        <label className="text-sm text-white/80" htmlFor="name">
+          {t.yourName} <span className="text-white/75">({t.nameHint})</span>
+        </label>
+        <input
+          id="name"
+          className="min-h-[48px] rounded-xl bg-white px-4 text-lg text-black outline-none focus:ring-2 focus:ring-gold"
+          value={name}
+          maxLength={20}
+          autoComplete="nickname"
+          onChange={(e) => setNameInput(e.target.value)}
+        />
+        <button className="btn-primary" disabled={!valid || busy} onClick={() => run(createRoom)}>
+          {t.createRoom}
+        </button>
+        <div className="flex gap-2">
+          <input
+            aria-label={t.roomCode}
+            placeholder={t.roomCode}
+            className="min-h-[48px] min-w-0 flex-1 rounded-xl bg-white px-4 text-center text-lg uppercase tracking-widest text-black outline-none focus:ring-2 focus:ring-gold"
+            value={code}
+            maxLength={5}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+          />
+          <button
+            className="btn-ghost"
+            disabled={!valid || code.length < 5 || busy}
+            onClick={() => run(() => joinRoom(code))}
+          >
+            {t.join}
+          </button>
+        </div>
+        {error && (
+          <p role="alert" className="rounded-lg bg-red-600/80 px-3 py-2 text-sm">
+            {error}
+          </p>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <button className="btn-ghost" onClick={() => setPage('ranking')}>
+          🏆 {t.ranking}
+        </button>
+        {identity && (
+          <button className="btn-ghost" onClick={() => setPage('profile', identity.name)}>
+            👤 {t.profile}
+          </button>
+        )}
+        <button className="btn-ghost" onClick={() => setPage('howto')}>
+          ❓ {t.howTo}
+        </button>
+      </div>
+      <p className="max-w-xs text-center text-xs text-white/75">{t.installHint}</p>
+    </div>
+  );
+}

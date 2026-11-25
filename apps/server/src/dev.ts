@@ -17,6 +17,8 @@ function makeRoom(code: string): Room {
     {
       now: () => Date.now(),
       store,
+      // DEV_FIXED_DECK=1: baralho sem embaralhar (testes E2E determinísticos). Nunca use em produção.
+      randInt: process.env.DEV_FIXED_DECK ? (m) => m - 1 : undefined,
       send: (pid, msg) => {
         const data = JSON.stringify(msg);
         for (const ws of sockets.get(pid) ?? []) if (ws.readyState === ws.OPEN) ws.send(data);

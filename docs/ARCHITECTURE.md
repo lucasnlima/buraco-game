@@ -102,10 +102,10 @@ nunca serializadas. Estado persistido no storage do Durable Object a cada jogada
 ## Plano de entrega
 
 1. ✅ Engine de regras + testes
-2. Servidor de salas (Durable Object) + protocolo + lobby
-3. UI da mesa mobile + jogo de 2 jogadores
-4. 3 e 4 jogadores (duplas), placar, fim de partida
-5. Ranking (D1) + perfil
-6. Voz WebRTC (mesh) + chat de texto
-7. PWA, polimento, animações, assets do Gemini
-8. CI/CD, deploy, README
+2. ✅ Servidor de salas (Durable Object) + protocolo + lobby
+3. ✅ UI da mesa mobile + jogo completo
+4. ✅ 3 e 4 jogadores (duplas), placar, fim de partida
+5. ✅ Ranking (D1) + perfil
+6. ✅ Voz WebRTC (mesh) + chat de texto + reações
+7. ✅ PWA, wake lock, háptico, tema de assets (SVG por código; imagens do Gemini plugáveis)
+8. ✅ CI/CD, deploy, README
