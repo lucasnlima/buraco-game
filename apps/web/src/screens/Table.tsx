@@ -1,6 +1,7 @@
 import {
   type Card,
   type Meld,
+  type Suit,
   arrangements,
   canastaType,
   cardCode,
@@ -18,11 +19,22 @@ import { Panels } from './Panels';
 import { Scoreboard } from './Scoreboard';
 import { TableFx } from './TableFx';
 
-const SUIT_ORDER = { S: 0, H: 1, D: 2, C: 3 } as const;
+/**
+ * Ordem dos naipes intercalando as cores: ouros, paus, copas, espadas. Se faltar um naipe na mão,
+ * rearranja os outros para dois da mesma cor não ficarem lado a lado.
+ */
+function suitOrder(hand: Card[]): Suit[] {
+  const has = (s: Suit) => hand.some((c) => c.suit === s);
+  const red = (['D', 'H'] as const).filter(has);
+  const black = (['C', 'S'] as const).filter(has);
+  const [first, second]: Suit[][] = black.length > red.length ? [black, red] : [red, black];
+  return [first![0], second![0], first![1], second![1]].filter((s): s is Suit => !!s);
+}
 
 function sortHand(hand: Card[], mode: 'suit' | 'rank'): Card[] {
   const s = hand.slice();
-  const key = (c: Card) => (c.suit ? SUIT_ORDER[c.suit] : 9);
+  const order = suitOrder(hand);
+  const key = (c: Card) => (c.suit ? order.indexOf(c.suit) : 9);
   s.sort(
     mode === 'suit'
       ? (a, b) => key(a) - key(b) || a.rank - b.rank || a.id - b.id
